@@ -1,4 +1,5 @@
 <script>
+import axios from 'axios';
 export default {
     name: 'AddMateriel', // Nom du composant
     data() {
@@ -27,9 +28,11 @@ export default {
 
         async submitForm() {
             try {
-                const response = await axios.post('http://localhost/api/materiels', this.form);
+                const response = await axios.post('http://localhost:3000/api/materiels', this.form);
                 console.log('Success:', response.data);
                 alert('Data inserted successfully!');
+                this.$emit('materiel-ajoute');
+
             } catch (error) {
                 console.error('Error submitting form:', error);
                 alert('There was an error inserting data.');
@@ -50,10 +53,10 @@ export default {
                     <fieldset class="fieldset">
                         <legend class="fieldset-legend">Familles</legend>
                         <select class="select" v-model="form.famille">
-                            <option disabled selected>Unité Centrales</option>
-                            <option>Chrome</option>
-                            <option>FireFox</option>
-                            <option>Safari</option>
+                            <option value="L01" selected>Unité Centrales</option>
+                            <option value="L02">Imprimantes</option>
+                            <option value="L40">Ecrans</option>
+                            <option value="L11">Onduleur</option>
                         </select>
                         <span class="label"></span>
                     </fieldset>
@@ -117,8 +120,14 @@ export default {
 
             </div>
             <div class="flex justify-end">
-                <button class="btn">Fermer</button>
-                <button @click="submitForm" class="btn bg-amber-500">Envoyer</button>
+                <div class="modal-action">
+                    <form method="dialog">
+
+                        <button class="btn">Fermer</button>
+                        <button @click="submitForm" class="btn bg-amber-500">Envoyer</button>
+                    </form>
+                </div>
+
             </div>
 
             <p class="py-4">Click the button below to close</p>

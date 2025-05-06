@@ -12,7 +12,15 @@ export default {
       title: 'Page Materiel',
       materiels: [],
       currentPage: 1,
-      itemsPerPage: 150
+      itemsPerPage: 150,
+      filters: {
+        matricule: '',
+        code_fam: '',
+        libelle: '',
+        code_frs: '',
+        date_acquisition: '',
+        montant: ''
+      }
     };
   },
   methods: {
@@ -30,15 +38,40 @@ export default {
       if (this.currentPage > 1) {
         this.currentPage--;
       }
-    }
+    },
+    fetchMateriels() {
+      axios.get('http://localhost:3000/materiel')
+        .then(response => {
+          this.materiels = response.data;
+        })
+        .catch(error => {
+          console.error('Erreur lors de la récupération des matériels :', error);
+        });
+    },
   },
   computed: {
-    paginatedMateriels() {
+    /*paginatedMateriels() {
       const start = (this.currentPage - 1) * this.itemsPerPage;
       return this.materiels.slice(start, start + this.itemsPerPage);
     },
     totalPages() {
       return Math.ceil(this.materiels.length / this.itemsPerPage);
+    }*/
+    filteredMateriels() {
+      return this.materiels.filter(item => {
+        return Object.keys(this.filters).every(key => {
+          const filterValue = this.filters[key]?.toString().toLowerCase();
+          const itemValue = item[key]?.toString().toLowerCase();
+          return filterValue === '' || itemValue.includes(filterValue);
+        });
+      });
+    },
+    paginatedMateriels() {
+      const start = (this.currentPage - 1) * this.itemsPerPage;
+      return this.filteredMateriels.slice(start, start + this.itemsPerPage);
+    },
+    totalPages() {
+      return Math.ceil(this.filteredMateriels.length / this.itemsPerPage);
     }
   },
 
@@ -48,36 +81,30 @@ export default {
     }
   },
 
-
   mounted() {
-    axios.get('http://localhost:3000/materiel')
-      .then(response => {
-        this.materiels = response.data
-      })
-      .catch(error => {
-        console.error('Erreur lors de la récupération des utilisateurs :', error)
-      })
-    console.log('Component mounted');
+    this.fetchMateriels();
+    /* axios.get('http://localhost:3000/materiel')
+        .then(response => {
+          this.materiels = response.data
+        })
+        .catch(error => {
+          console.error('Erreur lors de la récupération des utilisateurs :', error)
+        })
+      console.log('Component mounted');*/
   },
 };
 </script>
 
-
 <template>
-
 
   <!-- You can open the modal using ID.showModal() method -->
 
   <div class=" mx-auto px-4 ">
 
-
-
     <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter du nouveaux
       materiels</button>
 
-
-
-    <AddMateriel />
+    <AddMateriel @materiel-ajoute="fetchMateriels" />
     <div class="overflow-x-auto">
       <label for="perPage">Lignes par page :</label>
       <select id="perPage" v-model.number="itemsPerPage">
@@ -91,6 +118,16 @@ export default {
       </select>
       <table class="table table-xs">
         <thead>
+          <tr>
+            <th>#</th>
+            <th><input v-model="filters.matricule" placeholder="Filtrer" class="input input-xs" /></th>
+            <th><input v-model="filters.code_fam" placeholder="Filtrer" class="input input-xs" /></th>
+            <th><input v-model="filters.libelle" placeholder="Filtrer" class="input input-xs" /></th>
+            <th><input v-model="filters.code_frs" placeholder="Filtrer" class="input input-xs" /></th>
+            <th><input v-model="filters.date_acquisition" placeholder="AAAA-MM-JJ" class="input input-xs" /></th>
+            <th><input v-model="filters.montant" placeholder="Filtrer" class="input input-xs" /></th>
+            <th></th>
+          </tr>
           <tr>
             <th>#</th>
             <th>Matricule</th>
