@@ -30,7 +30,7 @@ export default {
             try {
                 const response = await axios.post('http://localhost:3000/api/materiels', this.form);
                 console.log('Success:', response.data);
-                alert('Data inserted successfully!');
+                // alert('Data inserted successfully!');
                 this.$emit('materiel-ajoute');
 
             } catch (error) {

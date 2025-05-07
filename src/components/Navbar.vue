@@ -8,6 +8,7 @@
             <ul class="menu menu-horizontal px-1">
                 <li class="min-w-[60px]"><a>Accueil</a></li>
                 <li>
+
                     <details>
                         <summary class="min-w-[110px]">Materiel</summary>
                         <ul class="p-2 z-10 rounded-none">
@@ -41,6 +42,7 @@
                     <details>
                         <summary>Table</summary>
                         <ul class="p-2 z-10 rounded-none">
+                            <li><a href="#/familles">Familles</a> |</li>
                             <li><a>Structure</a></li>
                             <li><a>Utilisateur</a></li>
 

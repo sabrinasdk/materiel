@@ -5,7 +5,8 @@ import Navbar from '@components/Navbar.vue';
 
 <template>
   <Navbar />
-  <HelloWorld msg="Vite + Vue" />
+  <router-view />
+  <!--<HelloWorld msg="Vite + Vue" />-->
 </template>
 
 <style scoped>

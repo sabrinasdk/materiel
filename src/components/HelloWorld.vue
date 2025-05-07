@@ -3,7 +3,7 @@ import AddMateriel from './AddMateriel.vue'
 import axios from 'axios'
 
 export default {
-  name: 'Page Materiels',
+  name: 'PageMateriels',
   components: {
     AddMateriel,
   },
