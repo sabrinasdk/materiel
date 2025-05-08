@@ -1,7 +1,7 @@
 <script>
 import axios from 'axios';
 export default {
-    name: 'AddMateriel', // Nom du composant
+    name: 'StructureAdd', // Nom du composant
     data() {
         return {
             title: 'Bienvenue',
@@ -42,44 +42,54 @@ export default {
             <form method="dialog">
                 <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
             </form>
-            <h3 class="text-lg font-bold">Nouvelle Famille </h3>
+            <h3 class="text-lg font-bold">Nouvelle Structure </h3>
 
             <div class="flex w-full flex-col lg:flex-row">
                 <div class="w-1/3 ">
 
                     <fieldset class="fieldset">
-                        <legend class="fieldset-legend">Code Famille</legend>
+                        <legend class="fieldset-legend">Code Structure</legend>
                         <input type="text" class="input" placeholder="Type here" v-model="form.code_fam" />
                         <p class="label"></p>
+                    </fieldset>
 
+                    <fieldset class="fieldset">
+                        <legend class="fieldset-legend">Type</legend>
+                        <input type="text" class="input" placeholder="Type here" v-model="form.code_fam" />
+                        <p class="label"></p>
+                    </fieldset>
+
+
+                </div>
+                <div class="w-1/3 ">
+                    <fieldset class="fieldset">
+                        <legend class="fieldset-legend">Libellé</legend>
+                        <input type="text" class="input" placeholder="Désignation" v-model="form.libelle" />
+                        <p class="label"></p>
                     </fieldset>
                     <fieldset class="fieldset">
-
+                        <legend class="fieldset-legend">Projet</legend>
+                        <input type="text" class="input" placeholder="Désignation" v-model="form.libelle" />
+                        <p class="label"></p>
                     </fieldset>
 
                 </div>
                 <div class="w-1/3 ">
                     <fieldset class="fieldset">
-                        <legend class="fieldset-legend">Libellé famille</legend>
+                        <legend class="fieldset-legend">Date création</legend>
                         <input type="text" class="input" placeholder="Désignation" v-model="form.libelle" />
                         <p class="label"></p>
                     </fieldset>
-                </div>
-                <div class="w-1/8">
-
-                </div>
-
-                <div class="flex justify-end">
-                    <fieldset class="fieldset">
+                    <div class="flex mt-2">
                         <div class="modal-action">
                             <form method="dialog">
-
                                 <button @click="submitForm" class="btn bg-amber-500">Envoyer</button>
                             </form>
                         </div>
-                    </fieldset>
 
+                    </div>
                 </div>
+
 
 
                 <!--

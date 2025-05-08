@@ -6,7 +6,7 @@
         </div>
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1">
-                <li class="min-w-[60px]"><a>Accueil</a></li>
+                <li class="min-w-[60px]"><a href="/">Accueil</a></li>
                 <li>
 
                     <details>
@@ -42,8 +42,8 @@
                     <details>
                         <summary>Table</summary>
                         <ul class="p-2 z-10 rounded-none">
-                            <li><a href="#/familles">Familles</a> |</li>
-                            <li><a>Structure</a></li>
+                            <li><a href="familles">Familles</a> </li>
+                            <li><a href="structures">Structure</a></li>
                             <li><a>Utilisateur</a></li>
 
                         </ul>

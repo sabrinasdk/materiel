@@ -44,64 +44,27 @@ app.get("/materiel", (req, res) => {
   });
 });
 
-// Route POST
-/*
-app.post("/api/materiels", (req, res) => {
-  const {
-    famille,
-    date_acquisition,
-    designation,
-    fournisseur,
-    garantie,
-    date_fin_garantie,
-    montant,
-    numero_sequentiel,
-  } = req.body;
-
-  const matricule = `${famille}/${numero_sequentiel}`;
-
-  const sql = `
-    INSERT INTO materiel (
-      code_fam,
-      date_acquisition,
-      libelle,
-      code_frs,
-      garantie,
-      date_fin_garantie,
-      montant,
-      matricule,
-      disponible
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-
-  const values = [
-    famille,
-    date_acquisition,
-    designation,
-    fournisseur,
-    garantie,
-    date_fin_garantie,
-    montant,
-    matricule,
-    1,
-  ];
-
-  db.query(sql, values, (err, result) => {
+app.get("/familles", (req, res) => {
+  db.query("SELECT * FROM famille ORDER BY id DESC", (err, results) => {
     if (err) {
-      console.error("❌ Erreur d'insertion :", err);
-      res
-        .status(500)
-        .json({ error: "Erreur lors de l'insertion dans la base" });
+      console.error("Erreur de requête :", err);
+      res.status(500).json({ error: "Erreur dans la base de données" });
     } else {
-      console.log("✅ Matériel inséré avec succès", matricule);
-      res.status(201).json({
-        message: "Matériel inséré avec succès",
-        id: result.insertId,
-      });
+      res.json(results);
     }
   });
 });
-*/
+
+app.get("/structures", (req, res) => {
+  db.query("SELECT * FROM structure ORDER BY id DESC", (err, results) => {
+    if (err) {
+      console.error("Erreur de requête :", err);
+      res.status(500).json({ error: "Erreur dans la base de données" });
+    } else {
+      res.json(results);
+    }
+  });
+});
 
 app.post("/api/materiels", (req, res) => {
   const {
@@ -161,6 +124,22 @@ app.post("/api/materiels", (req, res) => {
         insertCount: result.affectedRows,
       });
     }
+  });
+});
+
+// Route POST pour insérer une famille
+app.post("/api/familles", (req, res) => {
+  const { code_fam, libelle } = req.body;
+
+  const sql = "INSERT INTO famille (code_fam, libelle) VALUES (?, ?)";
+  db.query(sql, [code_fam, libelle], (err, result) => {
+    if (err) {
+      console.error("Erreur lors de l’insertion :", err);
+      return res.status(500).send("Erreur serveur");
+    }
+    res
+      .status(200)
+      .send({ message: "Famille ajoutée avec succès", id: result.insertId });
   });
 });
 

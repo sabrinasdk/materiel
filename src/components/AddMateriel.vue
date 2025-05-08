@@ -46,6 +46,9 @@ export default {
 <template>
     <dialog id="my_modal_4" class="modal">
         <div class="modal-box w-11/12 max-w-5xl">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            </form>
             <h3 class="text-lg font-bold">Nouvelle Acquisition </h3>
 
             <div class="flex w-full flex-col lg:flex-row">
@@ -119,11 +122,11 @@ export default {
                 </div>
 
             </div>
+
             <div class="flex justify-end">
                 <div class="modal-action">
                     <form method="dialog">
 
-                        <button class="btn">Fermer</button>
                         <button @click="submitForm" class="btn bg-amber-500">Envoyer</button>
                     </form>
                 </div>

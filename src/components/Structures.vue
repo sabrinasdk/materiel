@@ -1,21 +1,21 @@
 <script>
-import AddFamille from './AddFamille.vue'
+import StructureAdd from './StructureAdd.vue'
 import axios from 'axios'
 
 export default {
-    name: 'PageFamilles',
+    name: 'PageStructures',
     components: {
-        AddFamille,
+        StructureAdd,
     },
     data() {
         return {
-            title: 'Page Famille',
-            familles: [],
+            title: 'Page Structure',
+            structures: [],
             currentPage: 1,
             itemsPerPage: 150,
             filters: {
 
-                code_fam: '',
+                code_str: '',
                 libelle: '',
 
             }
@@ -37,10 +37,10 @@ export default {
                 this.currentPage--;
             }
         },
-        fetchFamilles() {
-            axios.get('http://localhost:3000/familles')
+        fetchStructures() {
+            axios.get('http://localhost:3000/structures')
                 .then(response => {
-                    this.familles = response.data;
+                    this.structures = response.data;
                 })
                 .catch(error => {
                     console.error('Erreur lors de la récupération des matériels :', error);
@@ -48,15 +48,15 @@ export default {
         },
     },
     computed: {
-        /*paginatedFamilles() {
+        /*paginatedStructures() {
           const start = (this.currentPage - 1) * this.itemsPerPage;
-          return this.familles.slice(start, start + this.itemsPerPage);
+          return this.structures.slice(start, start + this.itemsPerPage);
         },
         totalPages() {
-          return Math.ceil(this.familles.length / this.itemsPerPage);
+          return Math.ceil(this.structures.length / this.itemsPerPage);
         }*/
-        filteredFamilles() {
-            return this.familles.filter(item => {
+        filteredStructures() {
+            return this.structures.filter(item => {
                 return Object.keys(this.filters).every(key => {
                     const filterValue = this.filters[key]?.toString().toLowerCase();
                     const itemValue = item[key]?.toString().toLowerCase();
@@ -64,12 +64,12 @@ export default {
                 });
             });
         },
-        paginatedFamilles() {
+        paginatedStructures() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
-            return this.filteredFamilles.slice(start, start + this.itemsPerPage);
+            return this.filteredStructures.slice(start, start + this.itemsPerPage);
         },
         totalPages() {
-            return Math.ceil(this.filteredFamilles.length / this.itemsPerPage);
+            return Math.ceil(this.filteredStructures.length / this.itemsPerPage);
         }
     },
 
@@ -80,7 +80,7 @@ export default {
     },
 
     mounted() {
-        this.fetchFamilles();
+        this.fetchStructures();
 
     },
 };
@@ -92,10 +92,10 @@ export default {
 
     <div class=" mx-auto px-4 ">
 
-        <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter une nouvelle
-            famille</button>
+        <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter du nouveaux
+            structures</button>
 
-        <AddFamille @famille-ajoute="fetchFamilles" />
+        <StructureAdd @structure-ajoute="fetchStructures" />
         <div class="overflow-x-auto">
             <label for="perPage">Lignes par page :</label>
             <select id="perPage" v-model.number="itemsPerPage">
@@ -111,35 +111,37 @@ export default {
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th><input v-model="filters.matricule" placeholder="Filtrer" class="input input-xs" /></th>
-                        <th><input v-model="filters.code_fam" placeholder="Filtrer" class="input input-xs" /></th>
+
+                        <th><input v-model="filters.code_str" placeholder="Filtrer" class="input input-xs" /></th>
                         <th><input v-model="filters.libelle" placeholder="Filtrer" class="input input-xs" /></th>
-                        <th><input v-model="filters.code_frs" placeholder="Filtrer" class="input input-xs" /></th>
-                        <th><input v-model="filters.date_acquisition" placeholder="AAAA-MM-JJ" class="input input-xs" />
-                        </th>
-                        <th><input v-model="filters.montant" placeholder="Filtrer" class="input input-xs" /></th>
+
                         <th></th>
                     </tr>
                     <tr>
                         <th>#</th>
                         <th>Matricule</th>
-                        <th>Famille</th>
+                        <th>Structure</th>
+                        <th>Type</th>
+                        <th>Projet</th>
+                        <th>Date création</th>
 
+                        <th>Date cloture</th>
 
                     </tr>
                 </thead>
                 <tbody>
 
-                    <tr v-for="(item, index) in paginatedFamilles" :key="item.code_mat">
-                        <th class="w-1/3 ">{{ index + 1 }}</th>
-
-                        <td class="w-1/3 ">{{ item.code_fam }}</td>
-                        <td class="w-1/3 ">{{ item.libelle }}</td>
-
+                    <tr v-for="(item, index) in paginatedStructures" :key="item.code_mat">
+                        <th class="w-1/15 ">{{ index + 1 }}</th>
+                        <td class="w-1/5 ">{{ item.code_str }}</td>
+                        <td class="w-1/5 ">{{ item.libelle }}</td>
+                        <td class="w-1/5 ">{{ item.type_str }}</td>
+                        <td class="w-1/8 ">{{ item.projet }}</td>
+                        <td class="w-1/5 ">{{ item.date_creation }}</td>
+                        <td class="w-1/5 ">{{ item.date_cloture }}</td>
 
                     </tr>
                 </tbody>
-
 
                 <!-- Pagination -->
 
