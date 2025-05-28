@@ -1,24 +1,27 @@
 <script>
-import StructureAdd from './StructureAdd.vue'
+import FournisseurAdd from './FournisseurAdd.vue'
 import axios from 'axios'
 
 export default {
-    name: 'PageStructures',
+    name: 'PageFournisseurs',
     components: {
-        StructureAdd,
+        FournisseurAdd,
     },
     data() {
         return {
-            title: 'Page Structure',
-            structures: [],
+            title: 'Page Fournisseur',
+            fournisseurs: [],
             currentPage: 1,
             itemsPerPage: 150,
             filters: {
 
-                code_str: '',
                 libelle: '',
+                telephone: '',
+                adresse: '',
+                email: '',
 
             }
+
         };
     },
     methods: {
@@ -37,26 +40,19 @@ export default {
                 this.currentPage--;
             }
         },
-        fetchStructures() {
-            axios.get('http://localhost:3000/structures')
+        fetchFournisseurs() {
+            axios.get('http://localhost:3000/fournisseurs')
                 .then(response => {
-                    this.structures = response.data;
+                    this.fournisseurs = response.data;
                 })
                 .catch(error => {
-                    console.error('Erreur lors de la récupération des matériels :', error);
+                    console.error('Erreur lors de la récupération des fournisseurs :', error);
                 });
         },
     },
     computed: {
-        /*paginatedStructures() {
-          const start = (this.currentPage - 1) * this.itemsPerPage;
-          return this.structures.slice(start, start + this.itemsPerPage);
-        },
-        totalPages() {
-          return Math.ceil(this.structures.length / this.itemsPerPage);
-        }*/
-        filteredStructures() {
-            return this.structures.filter(item => {
+        filteredFournisseurs() {
+            return this.fournisseurs.filter(item => {
                 return Object.keys(this.filters).every(key => {
                     const filterValue = this.filters[key]?.toString().toLowerCase();
                     const itemValue = item[key]?.toString().toLowerCase();
@@ -64,12 +60,12 @@ export default {
                 });
             });
         },
-        paginatedStructures() {
+        paginatedFournisseurs() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
-            return this.filteredStructures.slice(start, start + this.itemsPerPage);
+            return this.filteredFournisseurs.slice(start, start + this.itemsPerPage);
         },
         totalPages() {
-            return Math.ceil(this.filteredStructures.length / this.itemsPerPage);
+            return Math.ceil(this.filteredFournisseurs.length / this.itemsPerPage);
         }
     },
 
@@ -80,7 +76,7 @@ export default {
     },
 
     mounted() {
-        this.fetchStructures();
+        this.fetchFournisseurs();
 
     },
 };
@@ -92,11 +88,10 @@ export default {
 
     <div class=" mx-auto px-4 ">
 
-        <button class="btn btn-dash  bg-white text-blue-900  rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter
-            du nouveaux
-            structures</button>
+        <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter du nouveaux
+            fournisseurs</button>
 
-        <StructureAdd @structure-ajoute="fetchStructures" />
+        <FournisseurAdd @fournisseur-ajoute="fetchFournisseurs" />
         <div class="overflow-x-auto">
             <label for="perPage">Lignes par page :</label>
             <select id="perPage" v-model.number="itemsPerPage">
@@ -120,26 +115,23 @@ export default {
                     </tr>
                     <tr>
                         <th>#</th>
-                        <th>Matricule</th>
-                        <th>Structure</th>
-                        <th>Type</th>
-                        <th>Projet</th>
-                        <th>Date création</th>
-
-                        <th>Date cloture</th>
+                        <th>Code Fournisseur</th>
+                        <th>Libellé</th>
+                        <th>Télephone</th>
+                        <th>Adresse</th>
+                        <th>Email</th>
 
                     </tr>
                 </thead>
                 <tbody>
 
-                    <tr v-for="(item, index) in paginatedStructures" :key="item.code_mat">
+                    <tr v-for="(item, index) in paginatedFournisseurs" :key="item.code_mat">
                         <th class="w-1/15 ">{{ index + 1 }}</th>
                         <td class="w-1/5 ">{{ item.code_str }}</td>
                         <td class="w-1/5 ">{{ item.libelle }}</td>
-                        <td class="w-1/5 ">{{ item.type_str }}</td>
-                        <td class="w-1/8 ">{{ item.projet }}</td>
-                        <td class="w-1/5 ">{{ item.date_creation }}</td>
-                        <td class="w-1/5 ">{{ item.date_cloture }}</td>
+                        <td class="w-1/5 ">{{ item.telephone }}</td>
+                        <td class="w-1/8 ">{{ item.adresse }}</td>
+                        <td class="w-1/5 ">{{ item.email }}</td>
 
                     </tr>
                 </tbody>

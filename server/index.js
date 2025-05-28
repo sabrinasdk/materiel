@@ -34,7 +34,7 @@ db.connect((err) => {
 
 // Route GET
 app.get("/materiel", (req, res) => {
-  db.query("SELECT * FROM materiel ORDER BY code_mat DESC", (err, results) => {
+  db.query("SELECT * FROM materiel ORDER BY code_fam DESC", (err, results) => {
     if (err) {
       console.error("Erreur de requête :", err);
       res.status(500).json({ error: "Erreur dans la base de données" });
@@ -55,8 +55,22 @@ app.get("/familles", (req, res) => {
   });
 });
 
+app.get("/fournisseurs", (req, res) => {
+  db.query(
+    "SELECT * FROM fournisseur ORDER BY code_frs DESC",
+    (err, results) => {
+      if (err) {
+        console.error("Erreur de requête :", err);
+        res.status(500).json({ error: "Erreur dans la base de données **" });
+      } else {
+        res.json(results);
+      }
+    }
+  );
+});
+
 app.get("/structures", (req, res) => {
-  db.query("SELECT * FROM structure ORDER BY id DESC", (err, results) => {
+  db.query("SELECT * FROM structure ORDER BY code_str ASC", (err, results) => {
     if (err) {
       console.error("Erreur de requête :", err);
       res.status(500).json({ error: "Erreur dans la base de données" });
@@ -64,6 +78,23 @@ app.get("/structures", (req, res) => {
       res.json(results);
     }
   });
+});
+
+app.get("/affectations", (req, res) => {
+  db.query(
+    `SELECT a.*, m.libelle 
+     FROM affectation a
+     JOIN materiel m ON a.code_mat = m.matricule
+     ORDER BY a.code_str ASC`,
+    (err, results) => {
+      if (err) {
+        console.error("Erreur de requête :", err);
+        res.status(500).json({ error: "Erreur dans la base de données" });
+      } else {
+        res.json(results);
+      }
+    }
+  );
 });
 
 app.post("/api/materiels", (req, res) => {
@@ -141,6 +172,28 @@ app.post("/api/familles", (req, res) => {
       .status(200)
       .send({ message: "Famille ajoutée avec succès", id: result.insertId });
   });
+});
+
+// Route POST pour insérer une famille
+app.post("/api/fournisseurs", (req, res) => {
+  const { code_frs, libelle, telephone, adresse, email } = req.body;
+
+  const sql =
+    "INSERT INTO fournisseur (code_frs, libelle, telephone, adresse, email) VALUES (?, ?, ?, ?, ?)";
+  db.query(
+    sql,
+    [code_frs, libelle, telephone, adresse, email],
+    (err, result) => {
+      if (err) {
+        console.error("Erreur lors de l’insertion :", err);
+        return res.status(500).send("Erreur serveur");
+      }
+      res.status(200).send({
+        message: "Fournisseur ajouté avec succès",
+        id: result.insertId,
+      });
+    }
+  );
 });
 
 // Démarrage du serveur

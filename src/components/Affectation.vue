@@ -1,24 +1,29 @@
 <script>
-import StructureAdd from './StructureAdd.vue'
+import AffectationAdd from './AffectationAdd.vue'
 import axios from 'axios'
 
 export default {
-    name: 'PageStructures',
+    name: 'PageAffectations',
     components: {
-        StructureAdd,
+        AffectationAdd
     },
     data() {
         return {
-            title: 'Page Structure',
-            structures: [],
+            title: 'Page Affectation',
+            materiels: [],
+            affectations: [],
             currentPage: 1,
             itemsPerPage: 150,
             filters: {
-
-                code_str: '',
+                code_mat: '',
                 libelle: '',
+                code_str: '',
+                matricule_utl: '',
+                type_affectation: '',
 
             }
+
+
         };
     },
     methods: {
@@ -37,10 +42,19 @@ export default {
                 this.currentPage--;
             }
         },
-        fetchStructures() {
-            axios.get('http://localhost:3000/structures')
+        fetchAffectations() {
+            axios.get('http://localhost:3000/materiel')
                 .then(response => {
-                    this.structures = response.data;
+                    this.materiels = response.data;
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération des matériels :', error);
+                });
+        },
+        fetchAffectations() {
+            axios.get('http://localhost:3000/affectations')
+                .then(response => {
+                    this.affectations = response.data;
                 })
                 .catch(error => {
                     console.error('Erreur lors de la récupération des matériels :', error);
@@ -48,15 +62,9 @@ export default {
         },
     },
     computed: {
-        /*paginatedStructures() {
-          const start = (this.currentPage - 1) * this.itemsPerPage;
-          return this.structures.slice(start, start + this.itemsPerPage);
-        },
-        totalPages() {
-          return Math.ceil(this.structures.length / this.itemsPerPage);
-        }*/
-        filteredStructures() {
-            return this.structures.filter(item => {
+
+        filteredAffectations() {
+            return this.affectations.filter(item => {
                 return Object.keys(this.filters).every(key => {
                     const filterValue = this.filters[key]?.toString().toLowerCase();
                     const itemValue = item[key]?.toString().toLowerCase();
@@ -64,12 +72,12 @@ export default {
                 });
             });
         },
-        paginatedStructures() {
+        paginatedAffectations() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
-            return this.filteredStructures.slice(start, start + this.itemsPerPage);
+            return this.filteredAffectations.slice(start, start + this.itemsPerPage);
         },
         totalPages() {
-            return Math.ceil(this.filteredStructures.length / this.itemsPerPage);
+            return Math.ceil(this.filteredAffectations.length / this.itemsPerPage);
         }
     },
 
@@ -80,7 +88,8 @@ export default {
     },
 
     mounted() {
-        this.fetchStructures();
+        this.fetchAffectations();
+        this.fetchAffectations();
 
     },
 };
@@ -88,19 +97,15 @@ export default {
 
 <template>
 
-    <!-- You can open the modal using ID.showModal() method -->
-
     <div class=" mx-auto px-4 ">
 
-        <button class="btn btn-dash  bg-white text-blue-900  rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter
-            du nouveaux
-            structures</button>
+        <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter une nouvelle
+            affectation</button>
 
-        <StructureAdd @structure-ajoute="fetchStructures" />
+        <AffectationAdd @materiel-ajoute="fetchAffectations" />
         <div class="overflow-x-auto">
             <label for="perPage">Lignes par page :</label>
             <select id="perPage" v-model.number="itemsPerPage">
-
                 <option :value="20">20</option>
                 <option :value="50">50</option>
                 <option :value="70">70</option>
@@ -108,45 +113,47 @@ export default {
                 <option :value="150">150</option>
                 <option :value="100">200</option>
             </select>
+
             <table class="table table-xs">
                 <thead>
                     <tr>
                         <th>#</th>
-
-                        <th><input v-model="filters.code_str" placeholder="Filtrer" class="input input-xs" /></th>
+                        <th><input v-model="filters.code_mat" placeholder="Filtrer" class="input input-xs" /></th>
                         <th><input v-model="filters.libelle" placeholder="Filtrer" class="input input-xs" /></th>
-
+                        <th><input v-model="filters.code_str" placeholder="Filtrer" class="input input-xs" /></th>
+                        <th><input v-model="filters.matricule_utl" placeholder="Filtrer" class="input input-xs" /></th>
+                        <th><input v-model="filters.type_affectation" placeholder="Filtrer" class="input input-xs" />
+                        </th>
                         <th></th>
                     </tr>
                     <tr>
                         <th>#</th>
                         <th>Matricule</th>
+                        <th>Libellé</th>
                         <th>Structure</th>
+                        <th>Utilisateur</th>
                         <th>Type</th>
-                        <th>Projet</th>
-                        <th>Date création</th>
 
-                        <th>Date cloture</th>
-
+                        <th>Edition</th>
                     </tr>
                 </thead>
                 <tbody>
 
-                    <tr v-for="(item, index) in paginatedStructures" :key="item.code_mat">
-                        <th class="w-1/15 ">{{ index + 1 }}</th>
-                        <td class="w-1/5 ">{{ item.code_str }}</td>
-                        <td class="w-1/5 ">{{ item.libelle }}</td>
-                        <td class="w-1/5 ">{{ item.type_str }}</td>
-                        <td class="w-1/8 ">{{ item.projet }}</td>
-                        <td class="w-1/5 ">{{ item.date_creation }}</td>
-                        <td class="w-1/5 ">{{ item.date_cloture }}</td>
+                    <tr v-for="(item, index) in paginatedAffectations" :key="item.code_mat">
+                        <th>{{ index + 1 }}</th>
+                        <td>{{ item.code_mat }}</td>
+                        <td>{{ item.libelle }}</td>
+                        <td>{{ item.code_str }}</td>
+                        <td>{{ item.matricule_utl }}</td>
+                        <td>{{ item.type_affectation }}</td>
+                        <td></td>
 
+                        <td></td>
                     </tr>
                 </tbody>
 
-                <!-- Pagination -->
-
             </table>
+
             <div class="pagination">
                 <button @click="prevPage" :disabled="currentPage === 1">Précédent</button>
 

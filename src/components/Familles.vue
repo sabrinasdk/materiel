@@ -132,7 +132,6 @@ export default {
 
                     <tr v-for="(item, index) in paginatedFamilles" :key="item.code_mat">
                         <th class="w-1/3 ">{{ index + 1 }}</th>
-
                         <td class="w-1/3 ">{{ item.code_fam }}</td>
                         <td class="w-1/3 ">{{ item.libelle }}</td>
 

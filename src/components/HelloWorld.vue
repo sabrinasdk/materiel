@@ -2,10 +2,13 @@
 import AddMateriel from './AddMateriel.vue'
 import axios from 'axios'
 
+
 export default {
   name: 'PageMateriels',
   components: {
-    AddMateriel,
+    AddMateriel
+
+
   },
   data() {
     return {
@@ -103,6 +106,8 @@ export default {
 
     <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter du nouveaux
       materiels</button>
+
+
 
     <AddMateriel @materiel-ajoute="fetchMateriels" />
     <div class="overflow-x-auto">
