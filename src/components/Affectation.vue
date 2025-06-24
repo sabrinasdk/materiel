@@ -42,7 +42,7 @@ export default {
                 this.currentPage--;
             }
         },
-        fetchAffectations() {
+        fetchMateriels() {
             axios.get('http://localhost:3000/materiel')
                 .then(response => {
                     this.materiels = response.data;
@@ -88,8 +88,9 @@ export default {
     },
 
     mounted() {
+
         this.fetchAffectations();
-        this.fetchAffectations();
+        this.fetchMateriels();
 
     },
 };

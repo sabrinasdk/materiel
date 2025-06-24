@@ -97,6 +97,51 @@ app.get("/affectations", (req, res) => {
   );
 });
 
+app.post("/materiel_affectation", (req, res) => {
+  const { structure, date } = req.body;
+
+  // Vérification des champs requis
+  if (!date || !structure) {
+    return res
+      .status(400)
+      .json({ error: "Champs 'date' et 'structure' requis." });
+  }
+
+  const query = `
+    SELECT 
+        a.*, 
+        m.libelle, 
+        m.montant
+    FROM affectation a
+    INNER JOIN (
+        SELECT code_mat, MAX(date) AS max_date
+        FROM affectation
+        GROUP BY code_mat
+    ) last_aff
+        ON a.code_mat = last_aff.code_mat
+       AND a.date = last_aff.max_date
+    INNER JOIN materiel m
+        ON a.code_mat = m.matricule
+    WHERE a.code_str = ?
+      AND a.date <= ?
+      AND NOT EXISTS (
+        SELECT 1
+        FROM reintegration r
+        WHERE r.code_mat = a.code_mat
+          AND r.date <= ?
+      );
+  `;
+
+  db.query(query, [structure, date, date], (err, results) => {
+    if (err) {
+      console.error("Erreur de requête :", err);
+      return res.status(500).json({ error: "Erreur dans la base de données." });
+    }
+
+    res.status(200).json(results);
+  });
+});
+
 app.post("/api/materiels", (req, res) => {
   const {
     famille,

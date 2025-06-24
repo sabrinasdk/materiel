@@ -23,8 +23,8 @@
                     <details>
                         <summary>Mise à disposition</summary>
                         <ul class="p-2 z-10 rounded-none">
-                            <li><a>Nouvelle affectation</a></li>
-                            <li><a>Transfert</a></li>
+                            <li><a href="/affectations">Nouvelle affectation</a></li>
+                            <li><a href="/transfert">Transfert</a></li>
                             <li><a>Reintegration</a></li>
                         </ul>
                     </details>
@@ -33,7 +33,7 @@
                     <details>
                         <summary>Facturation</summary>
                         <ul class="p-2 z-10 rounded-none">
-                            <li><a>Par Structure</a></li>
+                            <li><a href="facturation">Par Structure</a></li>
                             <li><a>Globale</a></li>
 
                         </ul>

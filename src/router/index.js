@@ -4,6 +4,8 @@ import PageFamilles from "@components/Familles.vue";
 import PageStructures from "@components/Structures.vue";
 import PageFournisseurs from "@components/Fournisseurs.vue";
 import PageAffectations from "@components/Affectation.vue";
+import PageFacturationMateriels from "@components/FacturationMateriel.vue";
+import PageTransfertMateriels from "@components/Transfert.vue";
 
 const routes = [
   { path: "/", name: "PageMateriels", component: PageMateriels },
@@ -18,6 +20,16 @@ const routes = [
     path: "/affectations",
     name: "PageAffectations",
     component: PageAffectations,
+  },
+  {
+    path: "/facturation",
+    name: "PageFacturationMateriels",
+    component: PageFacturationMateriels,
+  },
+  {
+    path: "/transfert",
+    name: "PageTransfertMateriels",
+    component: PageTransfertMateriels,
   },
 ];
 
