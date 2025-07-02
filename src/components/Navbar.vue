@@ -1,9 +1,9 @@
 <template>
     <!--<div class="navbar  bg-amber-400 shadow-sm z-10" tabindex="0">
         <div class="navbar-start bg-indigo-800 text-cyan-50 w-120">-->
-    <div class="navbar bg-gradient-to-r from-cyan-200 to-blue-300 shadow-md z-10" tabindex="0">
-        <div class="navbar-start bg-white text-blue-900 w-120">
-            <a class="btn btn-ghost text-xl ">Facturation Materiels Informatiques </a>
+    <div class="navbar bg-gradient-to-r from-primary to-blue-300 shadow-md z-10" tabindex="0">
+        <div class="navbar-start text-white w-120">
+            <span class="btn btn-ghost text-xl ">Facturation Materiels Informatiques </span>
         </div>
         <div class="navbar-center hidden lg:flex">
             <ul class="menu menu-horizontal px-1">
@@ -25,7 +25,7 @@
                         <ul class="p-2 z-10 rounded-none">
                             <li><a href="/affectations">Nouvelle affectation</a></li>
                             <li><a href="/transfert">Transfert</a></li>
-                            <li><a>Reintegration</a></li>
+                            <li><a href="/reintegration">Reintegration</a></li>
                         </ul>
                     </details>
                 </li>
@@ -34,7 +34,7 @@
                         <summary>Facturation</summary>
                         <ul class="p-2 z-10 rounded-none">
                             <li><a href="facturation">Par Structure</a></li>
-                            <li><a>Globale</a></li>
+                            <li><a href="facturationglobale">Globale</a></li>
 
                         </ul>
                     </details>

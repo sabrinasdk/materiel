@@ -100,7 +100,6 @@ export default {
         <div class="overflow-x-auto">
             <label for="perPage">Lignes par page :</label>
             <select id="perPage" v-model.number="itemsPerPage">
-
                 <option :value="20">20</option>
                 <option :value="50">50</option>
                 <option :value="70">70</option>
@@ -108,14 +107,12 @@ export default {
                 <option :value="150">150</option>
                 <option :value="100">200</option>
             </select>
-            <table class="table table-xs">
+            <table class="table table-xs table-zebra">
                 <thead>
                     <tr>
                         <th>#</th>
-
                         <th><input v-model="filters.code_str" placeholder="Filtrer" class="input input-xs" /></th>
                         <th><input v-model="filters.libelle" placeholder="Filtrer" class="input input-xs" /></th>
-
                         <th></th>
                     </tr>
                     <tr>
@@ -125,7 +122,6 @@ export default {
                         <th>Type</th>
                         <th>Projet</th>
                         <th>Date création</th>
-
                         <th>Date cloture</th>
 
                     </tr>

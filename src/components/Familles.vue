@@ -107,7 +107,7 @@ export default {
                 <option :value="150">150</option>
                 <option :value="100">200</option>
             </select>
-            <table class="table table-xs">
+            <table class="table table-xs table-zebra">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -124,7 +124,6 @@ export default {
                         <th>#</th>
                         <th>Matricule</th>
                         <th>Famille</th>
-
 
                     </tr>
                 </thead>

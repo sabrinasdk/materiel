@@ -1,12 +1,16 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import { useRoute } from 'vue-router'
+
 import Navbar from '@components/Navbar.vue';
+const route = useRoute()
 </script>
 
 <template>
-  <Navbar />
+
+  <Navbar v-if="route.path !== '/login'" />
+
   <router-view />
-  <!--<HelloWorld msg="Vite + Vue" />-->
+
 </template>
 
 <style scoped>

@@ -115,7 +115,7 @@ export default {
                 <option :value="100">200</option>
             </select>
 
-            <table class="table table-xs">
+            <table class="table table-xs table-zebra">
                 <thead>
                     <tr>
                         <th>#</th>

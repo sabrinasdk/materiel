@@ -53,13 +53,7 @@ export default {
     },
   },
   computed: {
-    /*paginatedMateriels() {
-      const start = (this.currentPage - 1) * this.itemsPerPage;
-      return this.materiels.slice(start, start + this.itemsPerPage);
-    },
-    totalPages() {
-      return Math.ceil(this.materiels.length / this.itemsPerPage);
-    }*/
+
     filteredMateriels() {
       return this.materiels.filter(item => {
         return Object.keys(this.filters).every(key => {
@@ -121,7 +115,7 @@ export default {
         <option :value="150">150</option>
         <option :value="100">200</option>
       </select>
-      <table class="table table-xs">
+      <table class="table table-xs table-zebra">
         <thead>
           <tr>
             <th>#</th>

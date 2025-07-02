@@ -2,21 +2,21 @@
 import axios from 'axios';
 
 export default {
-    name: 'PageTransfertMateriels',
+    name: 'PageReintegrationMateriels',
     data() {
         return {
-            title: 'Page Transfert Materiel',
+            title: 'Page Reintegration Materiel',
             materiels: [],
             affectations: [],
             currentPage: 1,
             itemsPerPage: 150,
-            date: '2025-06-01',
-
+            mois: '2025-06-01',
+            dateComplete: '',
+            date: '',
             structure: 'B142',
-            structureto: '',
+            structureto: 'DINF',
             structures: [],
             selectedMateriels: [],
-
             filters: {
                 code_mat: '',
                 libelle: '',
@@ -54,10 +54,10 @@ export default {
 
         getMateriels() {
             try {
-
+                this.dateComplete = this.getDernierJourDuMois(this.mois);
 
                 axios.post('http://localhost:3000/materiel_affectation', {
-                    date: this.date,
+                    date: this.dateComplete,
                     structure: this.structure
                 })
                     .then((response) => {
@@ -72,13 +72,13 @@ export default {
             }
         },
 
-        getDernierJourDuMois(date) {
-            const [annee, dateStr] = date.split("-");
+        getDernierJourDuMois(mois) {
+            const [annee, moisStr] = mois.split("-");
             const anneeNum = parseInt(annee, 10);
-            const dateNum = parseInt(dateStr, 10);
+            const moisNum = parseInt(moisStr, 10);
 
-            // Crée une date au 1er du date suivant, puis recule d'un jour
-            const dernierJour = new Date(anneeNum, dateNum, 0); // 0 → dernier jour du date précédent
+            // Crée une date au 1er du mois suivant, puis recule d'un jour
+            const dernierJour = new Date(anneeNum, moisNum, 0); // 0 → dernier jour du mois précédent
 
             // Formatage YYYY-MM-DD
             const yyyy = dernierJour.getFullYear();
@@ -87,30 +87,29 @@ export default {
 
             return `${yyyy}-${mm}-${dd}`;
         },
-        postTransfert() {
-            if (!this.structure || !this.structureto || this.selectedMateriels.length === 0) {
+        postReintegartion() {
+            if (!this.structure || this.selectedMateriels.length === 0) {
                 alert("Veuillez sélectionner une structure d'origine, une structure de destination, et au moins un matériel.");
                 return;
             }
 
-            axios.post('http://localhost:3000/transfert', {
+            axios.post('http://localhost:3000/reintegration', {
                 date: this.date,
                 structure: this.structure,
                 structureto: this.structureto,
                 codes_mat: this.selectedMateriels
             })
                 .then(response => {
-                    alert('Transfert effectué avec succès');
+                    alert('Reintegration effectué avec succès');
                     this.selectedMateriels = [];
                     this.getMateriels();
 
                 })
                 .catch(error => {
-                    console.error('Erreur lors du transfert :', error);
+                    console.error('Erreur lors du reintegration :', error);
                     alert('Erreur lors du transfert');
                 });
         }
-
 
     },
     computed: {
@@ -143,13 +142,13 @@ export default {
         itemsPerPage() {
             this.currentPage = 1;
         },
-        date(newVal) {
+        mois(newVal) {
             if (newVal && this.structure) {
                 this.getMateriels();
             }
         },
         structure(newVal) {
-            if (newVal && this.date) {
+            if (newVal && this.mois) {
                 this.getMateriels();
             }
         }
@@ -166,16 +165,17 @@ export default {
     <div class="mx-auto px-4">
         <div>
             <button class="btn btn-dash  bg-white text-blue-900  rounded-none m-2">
-                Transfert </button>
+                Reintegration </button>
 
         </div>
+
         <div class="grid grid-cols-4 gap-12 max-w-7xl">
             <div class="form-control">
-                <label for="date" class="label mt-5 mr-40">Veuillez sélectionner la date et les structures :</label>
+                <label for="mois" class="label mt-5 mr-40">Veuillez sélectionner la date et la structure :</label>
             </div>
             <div class="form-control">
-                <label for="date" class="label"><span class="label-text">Date</span></label>
-                <input type="date" id="date" class="input input-bordered w-full" v-model="date" />
+                <label for="mois" class="label"><span class="label-text">Date</span></label>
+                <input type="date" id="mois" class="input input-bordered w-full" v-model="date" />
             </div>
             <div class="form-control">
                 <label class="label"><span class="label-text">De Structure</span></label>
@@ -186,15 +186,7 @@ export default {
                     </option>
                 </select>
             </div>
-            <div class="form-control">
-                <label class="label"><span class="label-text">Vers Structure</span></label>
-                <select class="select input-bordered w-full" v-model="structureto">
-                    <option disabled value="">Sélectionnez la structure</option>
-                    <option v-for="item in structures" :key="item.id" :value="item.code_str">
-                        {{ item.code_str }}
-                    </option>
-                </select>
-            </div>
+
         </div>
 
         <div class="overflow-x-auto mt-5">
@@ -227,7 +219,6 @@ export default {
                     </tr>
                 </thead>
                 <tbody>
-
                     <tr v-for="(item, index) in paginatedAffectations" :key="item.code_mat">
                         <th>{{ index + 1 }}</th>
                         <td>
@@ -238,19 +229,18 @@ export default {
                         </td>
                         <td>{{ item.code_mat }}</td>
                         <td>{{ item.libelle }}</td>
+
                         <td></td>
                     </tr>
-
                     <tr>
                         <td colspan="4" style="text-align: right;"></td>
                         <td></td>
                     </tr>
-
                 </tbody>
             </table>
 
             <div class="flex justify-end mt-4 rounded">
-                <button class="btn bg-amber-500" @click="postTransfert">Enregistrer</button>
+                <button class="btn bg-amber-500" @click="postReintegartion">Enregistrer</button>
             </div>
 
             <div class="pagination">

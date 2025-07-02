@@ -2,17 +2,16 @@
 import axios from 'axios';
 
 export default {
-    name: 'PageFacturationMateriels',
+    name: 'PageFacturationGlobaleMateriels',
     data() {
         return {
-            title: 'Page Facturation Materiel',
+            title: 'Page Facturation Globale Materiel',
             materiels: [],
             affectations: [],
             currentPage: 1,
             itemsPerPage: 150,
             mois: '2025-06',
             dateComplete: '',
-            structure: 'B142',
             structures: [],
             filters: {
                 code_mat: '',
@@ -53,9 +52,9 @@ export default {
             try {
                 this.dateComplete = this.getDernierJourDuMois(this.mois);
 
-                axios.post('http://localhost:3000/materiel_affectation', {
+                axios.post('http://localhost:3000/materiel_affectationglobale', {
                     date: this.dateComplete,
-                    structure: this.structure
+                    structure: null // Charger toutes les structures
                 })
                     .then((response) => {
                         this.affectations = response.data;
@@ -73,21 +72,26 @@ export default {
             const [annee, moisStr] = mois.split("-");
             const anneeNum = parseInt(annee, 10);
             const moisNum = parseInt(moisStr, 10);
+            const dernierJour = new Date(anneeNum, moisNum, 0);
 
-            // Crée une date au 1er du mois suivant, puis recule d'un jour
-            const dernierJour = new Date(anneeNum, moisNum, 0); // 0 → dernier jour du mois précédent
-
-            // Formatage YYYY-MM-DD
             const yyyy = dernierJour.getFullYear();
             const mm = String(dernierJour.getMonth() + 1).padStart(2, "0");
             const dd = String(dernierJour.getDate()).padStart(2, "0");
 
             return `${yyyy}-${mm}-${dd}`;
         }
-
-
     },
     computed: {
+        filteredAffectations() {
+            return this.affectations.filter(item => {
+                return Object.keys(this.filters).every(key => {
+                    const filterValue = this.filters[key]?.toString().toLowerCase();
+                    const itemValue = item[key]?.toString().toLowerCase();
+                    return filterValue === '' || itemValue.includes(filterValue);
+                });
+            });
+        },
+
         totauxParStructure() {
             const result = {};
 
@@ -103,36 +107,27 @@ export default {
                 result[structure] += montantCalcule;
             });
 
-            // Transforme l’objet en tableau trié par structure
             return Object.entries(result).map(([structure, total]) => ({
                 structure,
                 total: total.toFixed(2)
             }));
-        }
-        ,
+        },
 
         totalMontantCalcule() {
-            return this.paginatedAffectations.reduce((total, item) => {
+            return this.filteredAffectations.reduce((total, item) => {
                 let montant = parseFloat(item.montant.replace(',', '.')) || 0;
                 let result = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
                 return total + result;
             }, 0).toFixed(2);
         },
-        filteredAffectations() {
-            return this.affectations.filter(item => {
-                return Object.keys(this.filters).every(key => {
-                    const filterValue = this.filters[key]?.toString().toLowerCase();
-                    const itemValue = item[key]?.toString().toLowerCase();
-                    return filterValue === '' || itemValue.includes(filterValue);
-                });
-            });
-        },
-        paginatedAffectations() {
+
+        paginatedTotauxParStructure() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
-            return this.filteredAffectations.slice(start, start + this.itemsPerPage);
+            return this.totauxParStructure.slice(start, start + this.itemsPerPage);
         },
+
         totalPages() {
-            return Math.ceil(this.filteredAffectations.length / this.itemsPerPage);
+            return Math.ceil(this.totauxParStructure.length / this.itemsPerPage);
         }
     },
     watch: {
@@ -140,12 +135,7 @@ export default {
             this.currentPage = 1;
         },
         mois(newVal) {
-            if (newVal && this.structure) {
-                this.getMateriels();
-            }
-        },
-        structure(newVal) {
-            if (newVal && this.mois) {
+            if (newVal) {
                 this.getMateriels();
             }
         }
@@ -153,7 +143,6 @@ export default {
     mounted() {
         this.getStructures();
         this.getMateriels();
-
     },
 };
 </script>
@@ -161,43 +150,15 @@ export default {
 <template>
     <div class="mx-auto px-4">
         <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">
-            Facturation Equipement Informatique par structure
+            Facturation Equipement Informatique globale
         </button>
 
-        <h3 class="mt-10 text-lg font-semibold">Totaux par structure</h3>
-        <table class="table table-sm table-bordered mt-2">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Structure</th>
-                    <th>Total (DzD)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="(item, index) in totauxParStructure" :key="item.structure">
-                    <td>{{ index + 1 }}</td>
-                    <td>{{ item.structure }}</td>
-                    <td>{{ item.total }}</td>
-                </tr>
-            </tbody>
-        </table>
-
-
-        <h5 class="text-l font-semibold text-primary">Veuillez sélectionner la date et la structure</h5>
-
+        <h5 class="text-l font-semibold text-primary">Veuillez sélectionner la date</h5>
+        <h1 class="text-6xl">𝕏</h1>
         <div class="grid grid-cols-2 gap-4 max-w-xl">
             <div class="form-control">
                 <label for="mois" class="label"><span class="label-text">Mois</span></label>
                 <input type="month" id="mois" class="input input-bordered w-full" v-model="mois" />
-            </div>
-            <div class="form-control">
-                <label class="label"><span class="label-text">Structure</span></label>
-                <select class="select input-bordered w-full" v-model="structure">
-                    <option disabled value="">Sélectionnez la structure</option>
-                    <option v-for="item in structures" :key="item.id" :value="item.code_str">
-                        {{ item.code_str }}
-                    </option>
-                </select>
             </div>
         </div>
 
@@ -222,58 +183,19 @@ export default {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(item, index) in totauxParStructure" :key="item.structure">
-                        <td>{{ index + 1 }}</td>
+                    <tr v-for="(item, index) in paginatedTotauxParStructure" :key="item.structure">
+                        <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
                         <td>{{ item.structure }}</td>
                         <td>{{ item.total }}</td>
                     </tr>
                 </tbody>
             </table>
 
+            <p class="mt-4 font-semibold text-right">
+                Total général : {{ totalMontantCalcule }} DzD
+            </p>
 
-            <table class="table table-xs table-zebra">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th><input v-model="filters.code_mat" placeholder="Code mat" class="input input-xs" /></th>
-                        <th><input v-model="filters.libelle" placeholder="Désignation" class="input input-xs" /></th>
-                        <th><input v-model="filters.code_str" placeholder="Structure" class="input input-xs" /></th>
-                        <th><input v-model="filters.matricule_utl" placeholder="Matricule" class="input input-xs" />
-                        </th>
-                        <th></th>
-                    </tr>
-                    <tr>
-                        <th>#</th>
-                        <th>Code matériel</th>
-                        <th>Désignation</th>
-                        <th>Montant</th>
-                        <th>Location</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(item, index) in paginatedAffectations" :key="item.code_mat">
-                        <th>{{ index + 1 }}</th>
-                        <td>{{ item.code_mat }}</td>
-                        <td>{{ item.libelle }}</td>
-                        <td>{{ item.montant }}</td>
-                        <td>
-                            {{
-                                ((((parseFloat(item.montant.replace(',', '.')) / 5)
-                                    + (parseFloat(item.montant.replace(',', '.')) * 0.3)
-                                    + (parseFloat(item.montant.replace(',', '.')) * 0.10)) / 12).toFixed(2))
-                            }} <span class="text-red-500">DzD</span>
-                        </td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right;"><strong>Total :</strong></td>
-                        <td><strong>{{ totalMontantCalcule }} DzD</strong></td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="pagination">
+            <div class="pagination mt-6">
                 <button @click="prevPage" :disabled="currentPage === 1">Précédent</button>
                 <button v-for="page in totalPages" :key="page" @click="goToPage(page)"
                     :class="{ active: currentPage === page }">
@@ -281,21 +203,11 @@ export default {
                 </button>
                 <button @click="nextPage" :disabled="currentPage === totalPages">Suivant</button>
             </div>
+
+
+
+
         </div>
     </div>
+
 </template>
-
-<style scoped>
-.pagination {
-    margin-top: 10px;
-}
-
-.pagination button {
-    margin: 0 5px;
-}
-
-.pagination button.active {
-    font-weight: bold;
-    background-color: #eee;
-}
-</style>

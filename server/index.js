@@ -5,10 +5,9 @@ const mysql = require("mysql2");
 const app = express();
 const port = 3000;
 
-// ✅ Configuration CORS correcte
 app.use(
   cors({
-    origin: "http://localhost:5173", // autorise les requêtes venant de Vite
+    origin: "http://localhost:5174", // autorise les requêtes venant de Vite
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
@@ -16,7 +15,6 @@ app.use(
 
 app.use(express.json());
 
-// Connexion MySQL
 const db = mysql.createConnection({
   host: "127.0.0.1",
   user: "root",
@@ -241,6 +239,139 @@ app.post("/api/fournisseurs", (req, res) => {
   );
 });
 
+app.post("/materiel_affectationglobale", (req, res) => {
+  const { structure, date } = req.body;
+
+  if (!date) {
+    return res.status(400).json({ error: "Le champ 'date' est requis." });
+  }
+
+  // Préparation de la requête SQL de base
+  let query = `
+    SELECT 
+        a.*, 
+        m.libelle, 
+        m.montant
+    FROM affectation a
+    INNER JOIN (
+        SELECT code_mat, MAX(date) AS max_date
+        FROM affectation
+        GROUP BY code_mat
+    ) last_aff
+        ON a.code_mat = last_aff.code_mat
+       AND a.date = last_aff.max_date
+    INNER JOIN materiel m
+        ON a.code_mat = m.matricule
+    WHERE a.date <= ?
+      AND NOT EXISTS (
+        SELECT 1
+        FROM reintegration r
+        WHERE r.code_mat = a.code_mat
+          AND r.date <= ?
+      )
+  `;
+
+  const params = [date, date];
+
+  // Si une structure est précisée, on ajoute la clause
+  if (structure && structure !== "all") {
+    query += " AND a.code_str = ?";
+    params.push(structure);
+  }
+
+  db.query(query, params, (err, results) => {
+    if (err) {
+      console.error("Erreur de requête :", err);
+      return res.status(500).json({ error: "Erreur dans la base de données." });
+    }
+
+    res.status(200).json(results);
+  });
+});
+
+app.post("/transfert", (req, res) => {
+  const { date, structure, structureto, codes_mat } = req.body;
+
+  if (!date || !structure || !structureto || !Array.isArray(codes_mat)) {
+    return res.status(400).json({ error: "Données invalides" });
+  }
+
+  const type_affectation = "TRANSFERT";
+  const nbr = 1;
+
+  const inserts = codes_mat.map((code_mat) => [
+    date,
+    code_mat,
+    structureto,
+    type_affectation,
+    nbr,
+  ]);
+
+  const sql = `
+    INSERT INTO affectation (
+      date,
+      code_mat,
+      code_str,
+      type_affectation,
+      nbr
+    ) VALUES ?
+  `;
+
+  db.query(sql, [inserts], (err, result) => {
+    if (err) {
+      console.error("❌ Erreur lors du transfert :", err);
+      return res.status(500).json({ error: "Erreur serveur" });
+    }
+
+    console.log(`✅ Transfert effectué pour ${codes_mat.length} matériels`);
+    return res.status(200).json({
+      message: "Transfert effectué avec succès",
+      insertCount: result.affectedRows,
+    });
+  });
+});
+
+app.post("/reintegration", (req, res) => {
+  const { date, structure, structureto, codes_mat } = req.body;
+
+  if (!date || !structure || !structureto || !Array.isArray(codes_mat)) {
+    return res.status(400).json({ error: "Données invalides" });
+  }
+
+  const type_affectation = "REINTEGRATION";
+  const nbr = 1;
+
+  const inserts = codes_mat.map((code_mat) => [
+    date,
+    code_mat,
+    structureto,
+    type_affectation,
+    nbr,
+  ]);
+
+  const sql = `
+    INSERT INTO affectation (
+      date,
+      code_mat,
+      code_str,
+      type_affectation,
+      nbr
+    ) VALUES ?
+  `;
+
+  db.query(sql, [inserts], (err, result) => {
+    if (err) {
+      console.error("❌ Erreur lors de reintegration :", err);
+      return res.status(500).json({ error: "Erreur serveur" });
+    }
+
+    console.log(`✅ Reintegration effectué pour ${codes_mat.length} matériels`);
+    return res.status(200).json({
+      message: "Reintegration effectué avec succès",
+      insertCount: result.affectedRows,
+    });
+  });
+});
 // Démarrage du serveur
 app.listen(port, () => {
   console.log(`🚀 Serveur démarré sur http://localhost:${port}`);
