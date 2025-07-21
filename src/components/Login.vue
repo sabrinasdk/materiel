@@ -1,3 +1,34 @@
+<script>
+import axios from 'axios';
+export default {
+    data() {
+        return {
+            email: '',
+            password: '',
+            errorMessage: ''
+        };
+    },
+    methods: {
+        handleLogin() {
+            axios.post('http://localhost:3000/login', {
+                nom: this.email,           // ou "email" si ton backend attend ce champ
+                motdepasse: this.password
+            })
+                .then(response => {
+                    this.$router.push('/affectations'); // ou '/dashboard', '/home', etc.
+                })
+                .catch(error => {
+                    if (error.response) {
+                        this.errorMessage = error.response.data.message;
+                    } else {
+                        this.errorMessage = 'Erreur réseau, impossible de se connecter';
+                    }
+                });
+        }
+    },
+};
+</script>
+
 <template>
     <div class="min-h-screen flex items-center justify-center bg-gray-100">
         <div class="card-relative w-full max-w-sm shadow-2xl">
@@ -15,7 +46,7 @@
                         <label class="label">
                             <span class="label-text">Email</span>
                         </label>
-                        <input type="email" v-model="email" placeholder="email@example.com" class="input input-bordered"
+                        <input type="text" v-model="email" placeholder="email@example.com" class="input input-bordered"
                             required />
                     </div>
 
@@ -25,6 +56,10 @@
                         </label>
                         <input type="password" v-model="password" placeholder="********" class="input input-bordered"
                             required />
+                    </div>
+
+                    <div v-if="errorMessage" class="error-message">
+                        {{ errorMessage }}
                     </div>
 
                     <div class="form-control mt-6">
@@ -44,4 +79,9 @@
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.error-message {
+    color: red;
+    margin-top: 10px;
+}
+</style>

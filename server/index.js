@@ -7,7 +7,7 @@ const port = 3000;
 
 app.use(
   cors({
-    origin: "http://localhost:5174", // autorise les requêtes venant de Vite
+    origin: "http://localhost:5173", // autorise les requêtes venant de Vite
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
@@ -93,6 +93,31 @@ app.get("/affectations", (req, res) => {
       }
     }
   );
+});
+
+app.post("/login", (req, res) => {
+  const { nom, motdepasse } = req.body;
+
+  const sql = "SELECT * FROM profil WHERE nom = ?";
+  db.query(sql, [nom], (err, result) => {
+    if (err) return res.status(500).json({ message: "Erreur serveur" });
+
+    if (result.length === 0) {
+      return res.status(401).json({ message: "Nom utilisateur incorrect" });
+    }
+
+    const user = result[0];
+
+    // Comparaison simple sans hash
+    if (motdepasse !== user.motdepasse) {
+      return res.status(401).json({ message: "Mot de passe incorrect" });
+    }
+
+    res.json({
+      message: "Connexion réussie",
+      user: { id: user.id, nom: user.nom },
+    });
+  });
 });
 
 app.post("/materiel_affectation", (req, res) => {

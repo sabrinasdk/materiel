@@ -164,24 +164,6 @@ export default {
             Facturation Equipement Informatique par structure
         </button>
 
-        <h3 class="mt-10 text-lg font-semibold">Totaux par structure</h3>
-        <table class="table table-sm table-bordered mt-2">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Structure</th>
-                    <th>Total (DzD)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="(item, index) in totauxParStructure" :key="item.structure">
-                    <td>{{ index + 1 }}</td>
-                    <td>{{ item.structure }}</td>
-                    <td>{{ item.total }}</td>
-                </tr>
-            </tbody>
-        </table>
-
 
         <h5 class="text-l font-semibold text-primary">Veuillez sélectionner la date et la structure</h5>
 
@@ -212,7 +194,7 @@ export default {
                 <option :value="200">200</option>
             </select>
 
-            <h3 class="mt-10 text-lg font-semibold">Totaux par structure</h3>
+
             <table class="table table-sm table-bordered mt-2">
                 <thead>
                     <tr>

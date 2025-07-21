@@ -1,5 +1,7 @@
 <script>
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export default {
     name: 'PageFacturationGlobaleMateriels',
@@ -79,7 +81,47 @@ export default {
             const dd = String(dernierJour.getDate()).padStart(2, "0");
 
             return `${yyyy}-${mm}-${dd}`;
+        },
+        telechargerTxt() {
+            const lignes = [''];
+
+            this.totauxParStructure.forEach(item => {
+                lignes.push(`${item.structure}  ${item.total}`);
+            });
+
+            const contenu = lignes.join('\n');
+            const blob = new Blob([contenu], { type: 'text/plain;charset=utf-8' });
+
+            const lien = document.createElement('a');
+            lien.href = URL.createObjectURL(blob);
+            lien.download = `Facturation_${this.mois}.txt`;
+            lien.click();
+            URL.revokeObjectURL(lien.href); // Nettoyage
+        },
+        telechargerPdf() {
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text('Facturation par Structure', 14, 15);
+
+            const data = this.totauxParStructure.map(item => [
+                item.structure,
+                `${item.total} DzD`
+            ]);
+
+            autoTable(doc, {
+                head: [['Structure', 'Total']],
+                body: data,
+                startY: 25,
+                theme: 'striped',
+                styles: {
+                    fontSize: 10,
+                }
+            });
+
+            doc.save(`totaux_structures_${this.mois}.pdf`);
         }
+
     },
     computed: {
         filteredAffectations() {
@@ -91,27 +133,42 @@ export default {
                 });
             });
         },
-
         totauxParStructure() {
             const result = {};
 
             this.filteredAffectations.forEach(item => {
-                const structure = item.code_str;
                 const montant = parseFloat(item.montant.replace(',', '.')) || 0;
                 const montantCalcule = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
 
-                if (!result[structure]) {
-                    result[structure] = 0;
+                const codeStr = item.code_str;
+                const structureInfo = this.structures.find(s => s.code_str === codeStr);
+                const typeStr = structureInfo ? structureInfo.type_str : null;
+
+                const structureKey = (typeStr === 'DG') ? 'F00' : codeStr;
+
+                if (!result[structureKey]) {
+                    result[structureKey] = 0;
                 }
 
-                result[structure] += montantCalcule;
+                result[structureKey] += montantCalcule;
             });
 
-            return Object.entries(result).map(([structure, total]) => ({
-                structure,
-                total: total.toFixed(2)
-            }));
-        },
+            const structuresAGarder = this.structures
+                .filter(s => s.type_str !== 'DG')
+                .map(s => s.code_str);
+
+            structuresAGarder.push('F00');
+
+            return Object.entries(result)
+                .filter(([structure]) => structuresAGarder.includes(structure))
+                .map(([structure, total]) => ({
+                    structure: structure === 'F00' ? 'F00' : structure,
+                    total: parseFloat(total.toFixed(2))
+                }))
+                .sort((a, b) => a.structure.localeCompare(b.structure)); // ✅ tri alphabétique
+        }
+
+        ,
 
         totalMontantCalcule() {
             return this.filteredAffectations.reduce((total, item) => {
@@ -154,7 +211,7 @@ export default {
         </button>
 
         <h5 class="text-l font-semibold text-primary">Veuillez sélectionner la date</h5>
-        <h1 class="text-6xl">𝕏</h1>
+
         <div class="grid grid-cols-2 gap-4 max-w-xl">
             <div class="form-control">
                 <label for="mois" class="label"><span class="label-text">Mois</span></label>
@@ -191,9 +248,11 @@ export default {
                 </tbody>
             </table>
 
-            <p class="mt-4 font-semibold text-right">
-                Total général : {{ totalMontantCalcule }} DzD
-            </p>
+            <button class="btn btn-secondary m-2" @click="telechargerTxt">
+                Télécharger (.txt)
+            </button>
+
+
 
             <div class="pagination mt-6">
                 <button @click="prevPage" :disabled="currentPage === 1">Précédent</button>
@@ -203,6 +262,11 @@ export default {
                 </button>
                 <button @click="nextPage" :disabled="currentPage === totalPages">Suivant</button>
             </div>
+
+            <button class="btn btn-accent m-2" @click="telechargerPdf">
+                Télécharger (.pdf)
+            </button>
+
 
 
 
