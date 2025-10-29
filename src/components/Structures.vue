@@ -93,8 +93,8 @@ export default {
     <div class=" mx-auto px-4 ">
 
         <button class="btn btn-dash  bg-white text-blue-900  rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter
-            du nouveaux
-            structures</button>
+
+            structure</button>
 
         <StructureAdd @structure-ajoute="fetchStructures" />
         <div class="overflow-x-auto">

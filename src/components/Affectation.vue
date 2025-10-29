@@ -14,16 +14,14 @@ export default {
             affectations: [],
             currentPage: 1,
             itemsPerPage: 150,
+            isLoading: true, // Loader
             filters: {
                 code_mat: '',
                 libelle: '',
                 code_str: '',
                 matricule_utl: '',
                 type_affectation: '',
-
             }
-
-
         };
     },
     methods: {
@@ -52,17 +50,20 @@ export default {
                 });
         },
         fetchAffectations() {
+            this.isLoading = true;
             axios.get('http://localhost:3000/affectations')
                 .then(response => {
                     this.affectations = response.data;
                 })
                 .catch(error => {
-                    console.error('Erreur lors de la récupération des matériels :', error);
+                    console.error('Erreur lors de la récupération des affectations :', error);
+                })
+                .finally(() => {
+                    this.isLoading = false;
                 });
         },
     },
     computed: {
-
         filteredAffectations() {
             return this.affectations.filter(item => {
                 return Object.keys(this.filters).every(key => {
@@ -80,31 +81,34 @@ export default {
             return Math.ceil(this.filteredAffectations.length / this.itemsPerPage);
         }
     },
-
     watch: {
         itemsPerPage() {
             this.currentPage = 1;
         }
     },
-
     mounted() {
-
         this.fetchAffectations();
         this.fetchMateriels();
-
     },
 };
 </script>
 
 <template>
+    <div class="mx-auto px-4">
 
-    <div class=" mx-auto px-4 ">
-
-        <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter une nouvelle
-            affectation</button>
+        <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">
+            Ajouter une nouvelle affectation
+        </button>
 
         <AffectationAdd @materiel-ajoute="fetchAffectations" />
-        <div class="overflow-x-auto">
+
+        <!-- Loader -->
+        <div v-if="isLoading" class="flex justify-center items-center min-h-[200px]">
+            <span class="loading loading-spinner text-primary loading-lg"></span>
+        </div>
+
+        <!-- Table -->
+        <div v-else class="overflow-x-auto">
             <label for="perPage">Lignes par page :</label>
             <select id="perPage" v-model.number="itemsPerPage">
                 <option :value="20">20</option>
@@ -112,7 +116,7 @@ export default {
                 <option :value="70">70</option>
                 <option :value="100">100</option>
                 <option :value="150">150</option>
-                <option :value="100">200</option>
+                <option :value="200">200</option>
             </select>
 
             <table class="table table-xs table-zebra">
@@ -134,12 +138,10 @@ export default {
                         <th>Structure</th>
                         <th>Utilisateur</th>
                         <th>Type</th>
-
                         <th>Edition</th>
                     </tr>
                 </thead>
                 <tbody>
-
                     <tr v-for="(item, index) in paginatedAffectations" :key="item.code_mat">
                         <th>{{ index + 1 }}</th>
                         <td>{{ item.code_mat }}</td>
@@ -148,21 +150,17 @@ export default {
                         <td>{{ item.matricule_utl }}</td>
                         <td>{{ item.type_affectation }}</td>
                         <td></td>
-
-                        <td></td>
                     </tr>
                 </tbody>
-
             </table>
 
+            <!-- Pagination -->
             <div class="pagination">
                 <button @click="prevPage" :disabled="currentPage === 1">Précédent</button>
-
                 <button v-for="page in totalPages" :key="page" @click="goToPage(page)"
                     :class="{ active: currentPage === page }">
                     {{ page }}
                 </button>
-
                 <button @click="nextPage" :disabled="currentPage === totalPages">Suivant</button>
             </div>
         </div>

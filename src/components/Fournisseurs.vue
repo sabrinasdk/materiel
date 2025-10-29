@@ -108,8 +108,11 @@ export default {
                     <tr>
                         <th>#</th>
 
-                        <th><input v-model="filters.code_str" placeholder="Filtrer" class="input input-xs" /></th>
+                        <th><input v-model="filters.code_frs" placeholder="Filtrer" class="input input-xs" /></th>
                         <th><input v-model="filters.libelle" placeholder="Filtrer" class="input input-xs" /></th>
+                        <th><input v-model="filters.telephone" placeholder="Filtrer" class="input input-xs" /></th>
+                        <th><input v-model="filters.adresse" placeholder="Filtrer" class="input input-xs" /></th>
+                        <th><input v-model="filters.email" placeholder="Filtrer" class="input input-xs" /></th>
 
                         <th></th>
                     </tr>
@@ -127,7 +130,7 @@ export default {
 
                     <tr v-for="(item, index) in paginatedFournisseurs" :key="item.code_mat">
                         <th class="w-1/15 ">{{ index + 1 }}</th>
-                        <td class="w-1/5 ">{{ item.code_str }}</td>
+                        <td class="w-1/5 ">{{ item.code_frs }}</td>
                         <td class="w-1/5 ">{{ item.libelle }}</td>
                         <td class="w-1/5 ">{{ item.telephone }}</td>
                         <td class="w-1/8 ">{{ item.adresse }}</td>

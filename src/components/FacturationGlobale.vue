@@ -15,6 +15,7 @@ export default {
             mois: '2025-06',
             dateComplete: '',
             structures: [],
+            loading: false, // ✅ ajout pour loading
             filters: {
                 code_mat: '',
                 libelle: '',
@@ -50,23 +51,20 @@ export default {
                 });
         },
 
-        getMateriels() {
+        async getMateriels() {
             try {
+                this.loading = true; // ✅ affiche loading
                 this.dateComplete = this.getDernierJourDuMois(this.mois);
 
-                axios.post('http://localhost:3000/materiel_affectationglobale', {
+                const response = await axios.post('http://localhost:3000/materiel_affectationglobale', {
                     date: this.dateComplete,
-                    structure: null // Charger toutes les structures
-                })
-                    .then((response) => {
-                        this.affectations = response.data;
-                    })
-                    .catch((error) => {
-                        console.error('Erreur lors de la récupération des affectations :', error);
-                    });
-
+                    structure: null
+                });
+                this.affectations = response.data;
             } catch (err) {
-                console.error('Erreur inattendue dans getMateriels() :', err);
+                console.error('Erreur lors de la récupération des affectations :', err);
+            } finally {
+                this.loading = false; // ✅ désactive loading
             }
         },
 
@@ -96,7 +94,7 @@ export default {
             lien.href = URL.createObjectURL(blob);
             lien.download = `Facturation_${this.mois}.txt`;
             lien.click();
-            URL.revokeObjectURL(lien.href); // Nettoyage
+            URL.revokeObjectURL(lien.href);
         },
         telechargerPdf() {
             const doc = new jsPDF();
@@ -121,8 +119,8 @@ export default {
 
             doc.save(`totaux_structures_${this.mois}.pdf`);
         }
-
     },
+
     computed: {
         filteredAffectations() {
             return this.affectations.filter(item => {
@@ -165,11 +163,8 @@ export default {
                     structure: structure === 'F00' ? 'F00' : structure,
                     total: parseFloat(total.toFixed(2))
                 }))
-                .sort((a, b) => a.structure.localeCompare(b.structure)); // ✅ tri alphabétique
-        }
-
-        ,
-
+                .sort((a, b) => a.structure.localeCompare(b.structure));
+        },
         totalMontantCalcule() {
             return this.filteredAffectations.reduce((total, item) => {
                 let montant = parseFloat(item.montant.replace(',', '.')) || 0;
@@ -177,16 +172,15 @@ export default {
                 return total + result;
             }, 0).toFixed(2);
         },
-
         paginatedTotauxParStructure() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
             return this.totauxParStructure.slice(start, start + this.itemsPerPage);
         },
-
         totalPages() {
             return Math.ceil(this.totauxParStructure.length / this.itemsPerPage);
         }
     },
+
     watch: {
         itemsPerPage() {
             this.currentPage = 1;
@@ -206,22 +200,33 @@ export default {
 
 <template>
     <div class="mx-auto px-4">
-        <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">
-            Facturation Equipement Informatique globale
+        <!-- ✅ Bouton principal -->
+        <button class="btn btn-blue w-full mt-4 rounded-lg shadow-lg hover:bg-blue-200">
+            💻 Facturation Équipement Informatique Globale
         </button>
 
-        <h5 class="text-l font-semibold text-primary">Veuillez sélectionner la date</h5>
+        <h5 class="text-lg font-semibold text-blue-600 mt-6">📅 Veuillez sélectionner le mois</h5>
 
-        <div class="grid grid-cols-2 gap-4 max-w-xl">
+        <!-- ✅ Input stylisé -->
+        <div class="grid grid-cols-2 gap-4 max-w-xl mt-3">
             <div class="form-control">
-                <label for="mois" class="label"><span class="label-text">Mois</span></label>
-                <input type="month" id="mois" class="input input-bordered w-full" v-model="mois" />
+                <label for="mois" class="label text-gray-700 font-medium">Mois</label>
+                <input type="month" id="mois"
+                    class="input input-bordered w-full border-blue-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-300 transition-all rounded-xl shadow-sm"
+                    v-model="mois" />
             </div>
         </div>
 
-        <div class="overflow-x-auto mt-5">
-            <label for="perPage">Lignes par page :</label>
-            <select id="perPage" v-model.number="itemsPerPage">
+        <!-- ✅ Loader -->
+        <div v-if="loading" class="flex items-center justify-center h-40">
+            <span class="loading loading-spinner loading-lg text-blue-500"></span>
+        </div>
+
+        <!-- ✅ Table affichée quand pas loading -->
+        <div v-else class="overflow-x-auto mt-8">
+            <label for="perPage" class="font-semibold">Lignes par page :</label>
+            <select id="perPage" v-model.number="itemsPerPage"
+                class="select select-bordered border-blue-400 focus:ring-blue-300 focus:ring-2 rounded-lg shadow-sm ml-2">
                 <option :value="20">20</option>
                 <option :value="50">50</option>
                 <option :value="70">70</option>
@@ -230,9 +235,10 @@ export default {
                 <option :value="200">200</option>
             </select>
 
-            <h3 class="mt-10 text-lg font-semibold">Totaux par structure</h3>
-            <table class="table table-sm table-bordered mt-2">
-                <thead>
+            <h3 class="mt-10 text-lg font-semibold text-blue-700">📊 Totaux par structure</h3>
+
+            <table class="table table-sm table-zebra mt-4 border border-blue-300 rounded-lg shadow-md">
+                <thead class="bg-blue-100 text-blue-800 font-semibold">
                     <tr>
                         <th>#</th>
                         <th>Structure</th>
@@ -240,38 +246,33 @@ export default {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(item, index) in paginatedTotauxParStructure" :key="item.structure">
+                    <tr v-for="(item, index) in paginatedTotauxParStructure" :key="item.structure"
+                        class="hover:bg-blue-50 transition-all">
                         <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
                         <td>{{ item.structure }}</td>
-                        <td>{{ item.total }}</td>
+                        <td class="font-medium">{{ item.total }}</td>
                     </tr>
                 </tbody>
             </table>
 
-            <button class="btn btn-secondary m-2" @click="telechargerTxt">
-                Télécharger (.txt)
-            </button>
-
-
-
-            <div class="pagination mt-6">
-                <button @click="prevPage" :disabled="currentPage === 1">Précédent</button>
-                <button v-for="page in totalPages" :key="page" @click="goToPage(page)"
-                    :class="{ active: currentPage === page }">
-                    {{ page }}
+            <div class="flex justify-between items-center mt-6">
+                <button class="btn btn-outline btn-secondary" @click="telechargerTxt">
+                    📄 Télécharger (.txt)
                 </button>
-                <button @click="nextPage" :disabled="currentPage === totalPages">Suivant</button>
+
+                <button class="btn btn-accent" @click="telechargerPdf">
+                    📘 Télécharger (.pdf)
+                </button>
             </div>
 
-            <button class="btn btn-accent m-2" @click="telechargerPdf">
-                Télécharger (.pdf)
-            </button>
-
-
-
-
-
+            <div class="pagination mt-6 flex justify-center gap-2">
+                <button class="btn btn-sm" @click="prevPage" :disabled="currentPage === 1">⬅️ Précédent</button>
+                <button v-for="page in totalPages" :key="page" class="btn btn-sm"
+                    :class="{ 'btn-primary': currentPage === page }" @click="goToPage(page)">
+                    {{ page }}
+                </button>
+                <button class="btn btn-sm" @click="nextPage" :disabled="currentPage === totalPages">Suivant ➡️</button>
+            </div>
         </div>
     </div>
-
 </template>

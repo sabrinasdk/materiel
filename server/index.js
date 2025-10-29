@@ -129,7 +129,7 @@ app.post("/materiel_affectation", (req, res) => {
       .status(400)
       .json({ error: "Champs 'date' et 'structure' requis." });
   }
-
+  /*
   const query = `
     SELECT 
         a.*, 
@@ -153,7 +153,39 @@ app.post("/materiel_affectation", (req, res) => {
         WHERE r.code_mat = a.code_mat
           AND r.date <= ?
       );
-  `;
+  `;*/
+
+  const query = `
+  SELECT 
+      a.*, 
+      m.libelle, 
+      m.montant
+  FROM affectation a
+  INNER JOIN (
+      SELECT code_mat, MAX(date) AS max_date
+      FROM affectation
+      GROUP BY code_mat
+  ) last_aff
+      ON a.code_mat = last_aff.code_mat
+     AND a.date = last_aff.max_date
+  INNER JOIN materiel m
+      ON a.code_mat = m.matricule
+  WHERE a.code_str = ?
+    AND a.date <= ?
+    AND (
+      NOT EXISTS (
+        SELECT 1
+        FROM reintegration r
+        WHERE r.code_mat = a.code_mat
+          AND r.date <= ?
+      )
+      OR a.date > (
+        SELECT MAX(r.date)
+        FROM reintegration r
+        WHERE r.code_mat = a.code_mat
+      )
+    );
+`;
 
   db.query(query, [structure, date, date], (err, results) => {
     if (err) {
@@ -263,7 +295,6 @@ app.post("/api/fournisseurs", (req, res) => {
     }
   );
 });
-
 app.post("/materiel_affectationglobale", (req, res) => {
   const { structure, date } = req.body;
 
@@ -271,7 +302,6 @@ app.post("/materiel_affectationglobale", (req, res) => {
     return res.status(400).json({ error: "Le champ 'date' est requis." });
   }
 
-  // Préparation de la requête SQL de base
   let query = `
     SELECT 
         a.*, 
@@ -288,17 +318,24 @@ app.post("/materiel_affectationglobale", (req, res) => {
     INNER JOIN materiel m
         ON a.code_mat = m.matricule
     WHERE a.date <= ?
-      AND NOT EXISTS (
-        SELECT 1
-        FROM reintegration r
-        WHERE r.code_mat = a.code_mat
-          AND r.date <= ?
+      AND (
+          -- Cas 1 : le matériel n’a jamais été réintégré
+          NOT EXISTS (
+              SELECT 1 FROM reintegration r
+              WHERE r.code_mat = a.code_mat
+                AND r.date <= ?
+          )
+          -- Cas 2 : il a été réintégré mais ensuite réaffecté après la dernière réintégration
+          OR a.date > (
+              SELECT IFNULL(MAX(r.date), '0000-00-00')
+              FROM reintegration r
+              WHERE r.code_mat = a.code_mat
+          )
       )
   `;
 
   const params = [date, date];
 
-  // Si une structure est précisée, on ajoute la clause
   if (structure && structure !== "all") {
     query += " AND a.code_str = ?";
     params.push(structure);

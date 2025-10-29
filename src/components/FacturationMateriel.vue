@@ -20,6 +20,22 @@ export default {
                 code_str: '',
                 matricule_utl: '',
                 type_affectation: '',
+            },
+            // Table de correspondance code_fam → libelle
+            famillesMap: {
+                L40: "Écran",
+                L02: "Imprimante",
+                L11: "Onduleur",
+                L03: "Pc Portable",
+                L01: "Unité centrale",
+                L08: "Scanner",
+                L70: "Équipement réseau",
+                L60: "Data Show",
+                L00: "Serveur",
+                L62: "Imprimante Code Barre",
+                L61: "Lecteur code à barre",
+                L43: "Armoire de brassage",
+                L04: "All In One"
             }
         };
     },
@@ -58,7 +74,12 @@ export default {
                     structure: this.structure
                 })
                     .then((response) => {
-                        this.affectations = response.data;
+                        // Ajout automatique du champ famille selon les 3 premières lettres du code
+                        this.affectations = response.data.map(item => {
+                            const prefix = item.code_mat ? item.code_mat.substring(0, 3) : '';
+                            item.famille = this.famillesMap[prefix] || 'Autre';
+                            return item;
+                        });
                     })
                     .catch((error) => {
                         console.error('Erreur lors de la récupération des affectations :', error);
@@ -73,43 +94,61 @@ export default {
             const [annee, moisStr] = mois.split("-");
             const anneeNum = parseInt(annee, 10);
             const moisNum = parseInt(moisStr, 10);
-
-            // Crée une date au 1er du mois suivant, puis recule d'un jour
-            const dernierJour = new Date(anneeNum, moisNum, 0); // 0 → dernier jour du mois précédent
-
-            // Formatage YYYY-MM-DD
+            const dernierJour = new Date(anneeNum, moisNum, 0);
             const yyyy = dernierJour.getFullYear();
             const mm = String(dernierJour.getMonth() + 1).padStart(2, "0");
             const dd = String(dernierJour.getDate()).padStart(2, "0");
-
             return `${yyyy}-${mm}-${dd}`;
         }
-
-
     },
+
     computed: {
+        // Totaux par structure
         totauxParStructure() {
             const result = {};
-
             this.filteredAffectations.forEach(item => {
                 const structure = item.code_str;
                 const montant = parseFloat(item.montant.replace(',', '.')) || 0;
                 const montantCalcule = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
-
                 if (!result[structure]) {
                     result[structure] = 0;
                 }
-
                 result[structure] += montantCalcule;
             });
-
-            // Transforme l’objet en tableau trié par structure
             return Object.entries(result).map(([structure, total]) => ({
                 structure,
                 total: total.toFixed(2)
             }));
-        }
-        ,
+        },
+
+        // Totaux par famille
+        totauxParFamille() {
+            const result = {};
+            this.filteredAffectations.forEach(item => {
+                const famille = item.famille || 'Non définie';
+                const montant = parseFloat(item.montant.replace(',', '.')) || 0;
+                const montantCalcule = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
+                if (!result[famille]) {
+                    result[famille] = 0;
+                }
+                result[famille] += montantCalcule;
+            });
+            return Object.entries(result).map(([famille, total]) => ({
+                famille,
+                total: total.toFixed(2)
+            }));
+        },
+
+        // Groupement des matériels par famille
+        groupByFamille() {
+            const groupes = {};
+            this.filteredAffectations.forEach(item => {
+                const famille = item.famille || 'Non définie';
+                if (!groupes[famille]) groupes[famille] = [];
+                groupes[famille].push(item);
+            });
+            return groupes;
+        },
 
         totalMontantCalcule() {
             return this.paginatedAffectations.reduce((total, item) => {
@@ -118,6 +157,7 @@ export default {
                 return total + result;
             }, 0).toFixed(2);
         },
+
         filteredAffectations() {
             return this.affectations.filter(item => {
                 return Object.keys(this.filters).every(key => {
@@ -127,14 +167,17 @@ export default {
                 });
             });
         },
+
         paginatedAffectations() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
             return this.filteredAffectations.slice(start, start + this.itemsPerPage);
         },
+
         totalPages() {
             return Math.ceil(this.filteredAffectations.length / this.itemsPerPage);
         }
     },
+
     watch: {
         itemsPerPage() {
             this.currentPage = 1;
@@ -150,22 +193,17 @@ export default {
             }
         }
     },
+
     mounted() {
         this.getStructures();
         this.getMateriels();
-
     },
 };
 </script>
 
 <template>
     <div class="mx-auto px-4">
-        <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">
-            Facturation Equipement Informatique par structure
-        </button>
-
-
-        <h5 class="text-l font-semibold text-primary">Veuillez sélectionner la date et la structure</h5>
+        <h3 class="font-bold text-lg mb-4 text-primary">Facturation des Équipements Informatiques</h3>
 
         <div class="grid grid-cols-2 gap-4 max-w-xl">
             <div class="form-control">
@@ -183,59 +221,44 @@ export default {
             </div>
         </div>
 
-        <div class="overflow-x-auto mt-5">
-            <label for="perPage">Lignes par page :</label>
-            <select id="perPage" v-model.number="itemsPerPage">
-                <option :value="20">20</option>
-                <option :value="50">50</option>
-                <option :value="70">70</option>
-                <option :value="100">100</option>
-                <option :value="150">150</option>
-                <option :value="200">200</option>
-            </select>
+        <!-- Totaux par famille -->
+        <h3 class="mt-6 font-bold text-primary">Totaux par famille</h3>
+        <table class="table table-sm table-bordered mt-2">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Famille</th>
+                    <th>Total (DzD)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="(item, index) in totauxParFamille" :key="item.famille">
+                    <td>{{ index + 1 }}</td>
+                    <td>{{ item.famille }}</td>
+                    <td>{{ item.total }}</td>
+                </tr>
+            </tbody>
+        </table>
 
-
-            <table class="table table-sm table-bordered mt-2">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Structure</th>
-                        <th>Total (DzD)</th>
+        <!-- Détails groupés par famille -->
+        <h3 class="mt-6 font-bold text-primary">Détails des matériels par famille</h3>
+        <table class="table table-xs table-zebra mt-2">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Code matériel</th>
+                    <th>Désignation</th>
+                    <th>Montant</th>
+                    <th>Location (DzD)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template v-for="(group, famille) in groupByFamille" :key="famille">
+                    <tr class="bg-gray-100 font-bold text-primary">
+                        <td colspan="5">{{ famille }}</td>
                     </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(item, index) in totauxParStructure" :key="item.structure">
+                    <tr v-for="(item, index) in group" :key="item.code_mat">
                         <td>{{ index + 1 }}</td>
-                        <td>{{ item.structure }}</td>
-                        <td>{{ item.total }}</td>
-                    </tr>
-                </tbody>
-            </table>
-
-
-            <table class="table table-xs table-zebra">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th><input v-model="filters.code_mat" placeholder="Code mat" class="input input-xs" /></th>
-                        <th><input v-model="filters.libelle" placeholder="Désignation" class="input input-xs" /></th>
-                        <th><input v-model="filters.code_str" placeholder="Structure" class="input input-xs" /></th>
-                        <th><input v-model="filters.matricule_utl" placeholder="Matricule" class="input input-xs" />
-                        </th>
-                        <th></th>
-                    </tr>
-                    <tr>
-                        <th>#</th>
-                        <th>Code matériel</th>
-                        <th>Désignation</th>
-                        <th>Montant</th>
-                        <th>Location</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(item, index) in paginatedAffectations" :key="item.code_mat">
-                        <th>{{ index + 1 }}</th>
                         <td>{{ item.code_mat }}</td>
                         <td>{{ item.libelle }}</td>
                         <td>{{ item.montant }}</td>
@@ -244,40 +267,29 @@ export default {
                                 ((((parseFloat(item.montant.replace(',', '.')) / 5)
                                     + (parseFloat(item.montant.replace(',', '.')) * 0.3)
                                     + (parseFloat(item.montant.replace(',', '.')) * 0.10)) / 12).toFixed(2))
-                            }} <span class="text-red-500">DzD</span>
+                            }}
                         </td>
-                        <td></td>
                     </tr>
-                    <tr>
-                        <td colspan="5" style="text-align: right;"><strong>Total :</strong></td>
-                        <td><strong>{{ totalMontantCalcule }} DzD</strong></td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="pagination">
-                <button @click="prevPage" :disabled="currentPage === 1">Précédent</button>
-                <button v-for="page in totalPages" :key="page" @click="goToPage(page)"
-                    :class="{ active: currentPage === page }">
-                    {{ page }}
-                </button>
-                <button @click="nextPage" :disabled="currentPage === totalPages">Suivant</button>
-            </div>
-        </div>
+                </template>
+                <tr>
+                    <td colspan="4" class="text-right"><strong>Total général :</strong></td>
+                    <td><strong>{{ totalMontantCalcule }} DzD</strong></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </template>
 
 <style scoped>
-.pagination {
-    margin-top: 10px;
+.table {
+    width: 100%;
 }
 
-.pagination button {
-    margin: 0 5px;
+.bg-gray-100 {
+    background-color: #f3f4f6;
 }
 
-.pagination button.active {
-    font-weight: bold;
-    background-color: #eee;
+.text-primary {
+    color: #2563eb;
 }
 </style>
