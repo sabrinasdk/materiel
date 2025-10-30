@@ -1,190 +1,105 @@
-<script>
-import AddMateriel from './AddMateriel.vue'
-import axios from 'axios'
-
-
-export default {
-  name: 'PageMateriels',
-  components: {
-    AddMateriel
-
-
-  },
-  data() {
-    return {
-      title: 'Page Materiel',
-      materiels: [],
-      currentPage: 1,
-      itemsPerPage: 150,
-      filters: {
-        matricule: '',
-        code_fam: '',
-        libelle: '',
-        code_frs: '',
-        date_acquisition: '',
-        montant: ''
-      }
-    };
-  },
-  methods: {
-    goToPage(page) {
-      if (page >= 1 && page <= this.totalPages) {
-        this.currentPage = page;
-      }
-    },
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++;
-      }
-    },
-    prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--;
-      }
-    },
-    fetchMateriels() {
-      axios.get('http://localhost:3000/materiel')
-        .then(response => {
-          this.materiels = response.data;
-        })
-        .catch(error => {
-          console.error('Erreur lors de la récupération des matériels :', error);
-        });
-    },
-  },
-  computed: {
-
-    filteredMateriels() {
-      return this.materiels.filter(item => {
-        return Object.keys(this.filters).every(key => {
-          const filterValue = this.filters[key]?.toString().toLowerCase();
-          const itemValue = item[key]?.toString().toLowerCase();
-          return filterValue === '' || itemValue.includes(filterValue);
-        });
-      });
-    },
-    paginatedMateriels() {
-      const start = (this.currentPage - 1) * this.itemsPerPage;
-      return this.filteredMateriels.slice(start, start + this.itemsPerPage);
-    },
-    totalPages() {
-      return Math.ceil(this.filteredMateriels.length / this.itemsPerPage);
-    }
-  },
-
-  watch: {
-    itemsPerPage() {
-      this.currentPage = 1;
-    }
-  },
-
-  mounted() {
-    this.fetchMateriels();
-    /* axios.get('http://localhost:3000/materiel')
-        .then(response => {
-          this.materiels = response.data
-        })
-        .catch(error => {
-          console.error('Erreur lors de la récupération des utilisateurs :', error)
-        })
-      console.log('Component mounted');*/
-  },
-};
-</script>
-
 <template>
+  <div
+    class="min-h-screen bg-gradient-to-br from-blue-700 via-indigo-700 to-sky-500 text-white flex flex-col items-center py-16">
+    <!-- Titre principal -->
+    <h1 class="text-4xl md:text-5xl font-extrabold mb-10 text-center drop-shadow-lg">
+      💻 Bienvenue sur la plateforme de Facturation Matériels
+    </h1>
 
-  <!-- You can open the modal using ID.showModal() method -->
+    <!-- Sous-titre -->
+    <p class="text-lg md:text-xl mb-12 text-center text-blue-100 max-w-2xl">
+      Gérez vos matériels, affectations, facturations et tables en toute simplicité depuis un seul espace.
+    </p>
 
-  <div class=" mx-auto px-4 ">
-
-    <button class="btn btn-dash btn-primary rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter du nouveaux
-      materiels</button>
-
-
-
-    <AddMateriel @materiel-ajoute="fetchMateriels" />
-    <div class="overflow-x-auto">
-      <label for="perPage">Lignes par page :</label>
-      <select id="perPage" v-model.number="itemsPerPage">
-
-        <option :value="20">20</option>
-        <option :value="50">50</option>
-        <option :value="70">70</option>
-        <option :value="100">100</option>
-        <option :value="150">150</option>
-        <option :value="100">200</option>
-      </select>
-      <table class="table table-xs table-zebra">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th><input v-model="filters.matricule" placeholder="Filtrer" class="input input-xs" /></th>
-            <th><input v-model="filters.code_fam" placeholder="Filtrer" class="input input-xs" /></th>
-            <th><input v-model="filters.libelle" placeholder="Filtrer" class="input input-xs" /></th>
-            <th><input v-model="filters.code_frs" placeholder="Filtrer" class="input input-xs" /></th>
-            <th><input v-model="filters.date_acquisition" placeholder="AAAA-MM-JJ" class="input input-xs" /></th>
-            <th><input v-model="filters.montant" placeholder="Filtrer" class="input input-xs" /></th>
-            <th></th>
-          </tr>
-          <tr>
-            <th>#</th>
-            <th>Matricule</th>
-            <th>Famille</th>
-            <th>Désignation</th>
-            <th>Fournisseur</th>
-            <th>Date Acquisition</th>
-            <th>Montant (€)</th>
-            <th>Edition</th>
-          </tr>
-        </thead>
-        <tbody>
-
-          <tr v-for="(item, index) in paginatedMateriels" :key="item.code_mat">
-            <th>{{ index + 1 }}</th>
-            <td>{{ item.matricule }}</td>
-            <td>{{ item.code_fam }}</td>
-            <td>{{ item.libelle }}</td>
-            <td>{{ item.code_frs }}</td>
-            <td>{{ item.date_acquisition }}</td>
-            <td>{{ item.montant }}</td>
-            <td></td>
-          </tr>
-        </tbody>
-
-
-        <!-- Pagination -->
-
-      </table>
-      <div class="pagination">
-        <button @click="prevPage" :disabled="currentPage === 1">Précédent</button>
-
-        <button v-for="page in totalPages" :key="page" @click="goToPage(page)"
-          :class="{ active: currentPage === page }">
-          {{ page }}
+    <!-- Grille des sections principales -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl w-full px-6">
+      <router-link v-for="item in sections" :key="item.name" :to="item.link"
+        class="group bg-white/10 hover:bg-white/20 transition-all duration-300 rounded-2xl p-8 shadow-lg hover:shadow-2xl flex flex-col items-center text-center backdrop-blur-md border border-white/20">
+        <div class="text-5xl mb-4">{{ item.icon }}</div>
+        <h2 class="text-2xl font-semibold mb-2">{{ item.name }}</h2>
+        <p class="text-blue-100 text-sm">{{ item.desc }}</p>
+        <button
+          class="mt-6 px-5 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 text-white">
+          Accéder
         </button>
-
-        <button @click="nextPage" :disabled="currentPage === totalPages">Suivant</button>
-      </div>
+      </router-link>
     </div>
+
+    <!-- Bas de page -->
+    <footer class="mt-16 text-sm text-blue-200">
+      © 2025 - Application Facturation Matériels | Designed with 💙 by Sabrina
+    </footer>
   </div>
 </template>
 
+<script>
+export default {
+  name: "HomePage",
+  data() {
+    return {
+      sections: [
+        {
+          name: "Matériel",
+          icon: "🖥️",
+          desc: "Gérez les acquisitions, listes et recherches de matériels.",
+          link: "/materiels"
+        },
+        {
+          name: "Mise à disposition",
+          icon: "📦",
+          desc: "Créez des affectations, transferts ou réintégrations.",
+          link: "/affectations"
+        },
+        {
+          name: "Facturation",
+          icon: "💰",
+          desc: "Consultez ou éditez vos factures par structure ou globalement.",
+          link: "/facturation"
+        },
+        {
+          name: "Tables",
+          icon: "📋",
+          desc: "Accédez aux familles, structures et fournisseurs.",
+          link: "/tables"
+        },
+        {
+          name: "Recherche",
+          icon: "🔍",
+          desc: "Recherchez par structure ou utilisateur rapidement.",
+          link: "/recherche"
+        },
+        {
+          name: "Utilisateurs",
+          icon: "👤",
+          desc: "Gérez les utilisateurs et leurs accès.",
+          link: "/utilisateurs"
+        }
+      ]
+    };
+  }
+};
+</script>
+
 <style scoped>
-.read-the-docs {
-  color: #888;
+/* Animation d’apparition douce */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.pagination {
-  margin-top: 10px;
+.grid>a {
+  animation: fadeInUp 0.5s ease forwards;
 }
 
-.pagination button {
-  margin: 0 5px;
-}
-
-.pagination button.active {
-  font-weight: bold;
-  background-color: #eee;
+/* Effet au survol sur les cartes */
+.group:hover h2 {
+  color: #fff;
 }
 </style>

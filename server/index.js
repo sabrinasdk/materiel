@@ -5,6 +5,25 @@ const mysql = require("mysql2");
 const app = express();
 const port = 3000;
 
+const jwt = require("jsonwebtoken");
+const SECRET_KEY = "votre_secret_super_secure";
+
+function verifyToken(req, res, next) {
+  const token = req.headers["authorization"];
+
+  if (!token) {
+    return res.status(403).json({ message: "Token manquant" });
+  }
+
+  jwt.verify(token.split(" ")[1], SECRET_KEY, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ message: "Token invalide ou expiré" });
+    }
+    req.user = decoded; // tu peux accéder à req.user.id dans tes routes
+    next();
+  });
+}
+
 app.use(
   cors({
     origin: "http://localhost:5173", // autorise les requêtes venant de Vite
@@ -31,7 +50,7 @@ db.connect((err) => {
 });
 
 // Route GET
-app.get("/materiel", (req, res) => {
+app.get("/materiel", verifyToken, (req, res) => {
   db.query("SELECT * FROM materiel ORDER BY code_fam DESC", (err, results) => {
     if (err) {
       console.error("Erreur de requête :", err);
@@ -53,7 +72,7 @@ app.get("/familles", (req, res) => {
   });
 });
 
-app.get("/fournisseurs", (req, res) => {
+app.get("/fournisseurs", verifyToken, (req, res) => {
   db.query(
     "SELECT * FROM fournisseur ORDER BY code_frs DESC",
     (err, results) => {
@@ -78,7 +97,7 @@ app.get("/structures", (req, res) => {
   });
 });
 
-app.get("/affectations", (req, res) => {
+app.get("/affectations", verifyToken, (req, res) => {
   db.query(
     `SELECT a.*, m.libelle 
      FROM affectation a
@@ -108,19 +127,26 @@ app.post("/login", (req, res) => {
 
     const user = result[0];
 
-    // Comparaison simple sans hash
     if (motdepasse !== user.motdepasse) {
       return res.status(401).json({ message: "Mot de passe incorrect" });
     }
 
+    // ✅ Création du token JWT
+    const token = jwt.sign(
+      { id: user.id, nom: user.nom },
+      SECRET_KEY,
+      { expiresIn: "2h" } // durée de validité du token
+    );
+
     res.json({
       message: "Connexion réussie",
+      token,
       user: { id: user.id, nom: user.nom },
     });
   });
 });
 
-app.post("/materiel_affectation", (req, res) => {
+app.post("/materiel_affectation", verifyToken, (req, res) => {
   const { structure, date } = req.body;
 
   // Vérification des champs requis
@@ -197,7 +223,7 @@ app.post("/materiel_affectation", (req, res) => {
   });
 });
 
-app.post("/api/materiels", (req, res) => {
+app.post("/api/materiels", verifyToken, (req, res) => {
   const {
     famille,
     date_acquisition,
@@ -259,7 +285,7 @@ app.post("/api/materiels", (req, res) => {
 });
 
 // Route POST pour insérer une famille
-app.post("/api/familles", (req, res) => {
+app.post("/api/familles", verifyToken, (req, res) => {
   const { code_fam, libelle } = req.body;
 
   const sql = "INSERT INTO famille (code_fam, libelle) VALUES (?, ?)";
@@ -295,7 +321,7 @@ app.post("/api/fournisseurs", (req, res) => {
     }
   );
 });
-app.post("/materiel_affectationglobale", (req, res) => {
+app.post("/materiel_affectationglobale", verifyToken, (req, res) => {
   const { structure, date } = req.body;
 
   if (!date) {
@@ -351,7 +377,7 @@ app.post("/materiel_affectationglobale", (req, res) => {
   });
 });
 
-app.post("/transfert", (req, res) => {
+app.post("/transfert", verifyToken, (req, res) => {
   const { date, structure, structureto, codes_mat } = req.body;
 
   if (!date || !structure || !structureto || !Array.isArray(codes_mat)) {
@@ -393,7 +419,7 @@ app.post("/transfert", (req, res) => {
   });
 });
 
-app.post("/reintegration", (req, res) => {
+app.post("/reintegration", verifyToken, (req, res) => {
   const { date, structure, structureto, codes_mat } = req.body;
 
   if (!date || !structure || !structureto || !Array.isArray(codes_mat)) {

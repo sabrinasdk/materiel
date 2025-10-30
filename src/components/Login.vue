@@ -11,11 +11,13 @@ export default {
     methods: {
         handleLogin() {
             axios.post('http://localhost:3000/login', {
-                nom: this.email,           // ou "email" si ton backend attend ce champ
+                nom: this.email,
                 motdepasse: this.password
             })
                 .then(response => {
-                    this.$router.push('/affectations'); // ou '/dashboard', '/home', etc.
+                    const token = response.data.token;
+                    localStorage.setItem("token", token); // ✅ on sauvegarde le token
+                    this.$router.push('/');
                 })
                 .catch(error => {
                     if (error.response) {
@@ -25,6 +27,7 @@ export default {
                     }
                 });
         }
+
     },
 };
 </script>

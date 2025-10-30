@@ -16,12 +16,14 @@
                     <details>
                         <summary class="hover:bg-white/20 px-4 py-2 cursor-pointer select-none">🖥️ Matériel</summary>
                         <ul class="absolute bg-white text-gray-800 w-48 border border-gray-200 shadow-md mt-1">
-                            <li><a href="/"
+                            <li><a href="/materiels"
                                     class="block px-4 py-2 hover:bg-blue-100 border-b border-gray-100">Acquisition</a>
                             </li>
-                            <li><a href="/" class="block px-4 py-2 hover:bg-blue-100 border-b border-gray-100">Liste
+                            <li><a href="/materiels"
+                                    class="block px-4 py-2 hover:bg-blue-100 border-b border-gray-100">Liste
                                     Matériel</a></li>
-                            <li><a href="/" class="block px-4 py-2 hover:bg-blue-100">Recherche Matériel</a></li>
+                            <li><a href="/materiels" class="block px-4 py-2 hover:bg-blue-100">Recherche Matériel</a>
+                            </li>
                         </ul>
                     </details>
                 </li>
@@ -87,19 +89,28 @@
         </div>
 
         <div class="navbar-end">
-            <button
-                class="btn btn-sm bg-white text-blue-700 font-semibold hover:bg-yellow-300 hover:text-black transition-all duration-300">
-                Conn / Déconn
+
+            <button @click="logout" class="bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-indigo-600 hover:to-blue-500 text-white
+            font-medium px-4 py-2 rounded-md shadow-md transition-all duration-300 hover:shadow-lg">
+                🚪 Déconnexion
             </button>
+
         </div>
     </nav>
 </template>
-
 <script>
 export default {
     name: "Navbar",
+
+    methods: {
+        logout() {
+            localStorage.removeItem("token");
+            this.$router.push("/login");
+        }
+    }
 };
 </script>
+
 
 <style scoped>
 /* Supprime les coins arrondis des sous-menus */
