@@ -69,7 +69,7 @@
                             <li><a href="/fournisseurs"
                                     class="block px-4 py-2 hover:bg-blue-100 border-b border-gray-100">Fournisseurs</a>
                             </li>
-                            <li><a href="#" class="block px-4 py-2 hover:bg-blue-100">Utilisateurs</a></li>
+                            <li><a href="/utilisateurs" class="block px-4 py-2 hover:bg-blue-100">Utilisateurs</a></li>
                         </ul>
                     </details>
                 </li>
@@ -81,7 +81,7 @@
                             <li><a href="#"
                                     class="block px-4 py-2 hover:bg-blue-100 border-b border-gray-100">Structure</a>
                             </li>
-                            <li><a href="#" class="block px-4 py-2 hover:bg-blue-100">Utilisateur</a></li>
+                            <li><a href="/utilisateurs" class="block px-4 py-2 hover:bg-blue-100">Utilisateur</a></li>
                         </ul>
                     </details>
                 </li>

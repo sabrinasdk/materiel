@@ -11,12 +11,10 @@ export default {
             currentPage: 1,
             itemsPerPage: 150,
             date: '2025-06-01',
-
             structure: 'B142',
             structureto: '',
             structures: [],
             selectedMateriels: [],
-
             filters: {
                 code_mat: '',
                 libelle: '',
@@ -28,64 +26,31 @@ export default {
     },
     methods: {
         goToPage(page) {
-            if (page >= 1 && page <= this.totalPages) {
-                this.currentPage = page;
-            }
+            if (page >= 1 && page <= this.totalPages) this.currentPage = page;
         },
         nextPage() {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++;
-            }
+            if (this.currentPage < this.totalPages) this.currentPage++;
         },
         prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-            }
+            if (this.currentPage > 1) this.currentPage--;
         },
         getStructures() {
             axios.get('http://localhost:3000/structures')
-                .then(response => {
-                    this.structures = response.data;
-                })
-                .catch(error => {
-                    console.error('Erreur lors de la récupération des structures :', error);
-                });
+                .then(response => (this.structures = response.data))
+                .catch(error => console.error('Erreur lors de la récupération des structures :', error));
         },
-
         getMateriels() {
-            try {
-
-
-                axios.post('http://localhost:3000/materiel_affectation', {
-                    date: this.date,
-                    structure: this.structure
-                })
-                    .then((response) => {
-                        this.affectations = response.data;
-                    })
-                    .catch((error) => {
-                        console.error('Erreur lors de la récupération des affectations :', error);
-                    });
-
-            } catch (err) {
-                console.error('Erreur inattendue dans getMateriels() :', err);
-            }
+            axios.post('http://localhost:3000/materiel_affectation', {
+                date: this.date,
+                structure: this.structure
+            })
+                .then(response => (this.affectations = response.data))
+                .catch(error => console.error('Erreur lors de la récupération des affectations :', error));
         },
-
         getDernierJourDuMois(date) {
             const [annee, dateStr] = date.split("-");
-            const anneeNum = parseInt(annee, 10);
-            const dateNum = parseInt(dateStr, 10);
-
-            // Crée une date au 1er du date suivant, puis recule d'un jour
-            const dernierJour = new Date(anneeNum, dateNum, 0); // 0 → dernier jour du date précédent
-
-            // Formatage YYYY-MM-DD
-            const yyyy = dernierJour.getFullYear();
-            const mm = String(dernierJour.getMonth() + 1).padStart(2, "0");
-            const dd = String(dernierJour.getDate()).padStart(2, "0");
-
-            return `${yyyy}-${mm}-${dd}`;
+            const dernierJour = new Date(parseInt(annee, 10), parseInt(dateStr, 10), 0);
+            return `${dernierJour.getFullYear()}-${String(dernierJour.getMonth() + 1).padStart(2, "0")}-${String(dernierJour.getDate()).padStart(2, "0")}`;
         },
         postTransfert() {
             if (!this.structure || !this.structureto || this.selectedMateriels.length === 0) {
@@ -99,22 +64,18 @@ export default {
                 structureto: this.structureto,
                 codes_mat: this.selectedMateriels
             })
-                .then(response => {
+                .then(() => {
                     alert('Transfert effectué avec succès');
                     this.selectedMateriels = [];
                     this.getMateriels();
-
                 })
                 .catch(error => {
                     console.error('Erreur lors du transfert :', error);
                     alert('Erreur lors du transfert');
                 });
         }
-
-
     },
     computed: {
-
         totalMontantCalcule() {
             return this.paginatedAffectations.reduce((total, item) => {
                 let montant = parseFloat(item.montant.replace(',', '.')) || 0;
@@ -123,13 +84,13 @@ export default {
             }, 0).toFixed(2);
         },
         filteredAffectations() {
-            return this.affectations.filter(item => {
-                return Object.keys(this.filters).every(key => {
+            return this.affectations.filter(item =>
+                Object.keys(this.filters).every(key => {
                     const filterValue = this.filters[key]?.toString().toLowerCase();
                     const itemValue = item[key]?.toString().toLowerCase();
                     return filterValue === '' || itemValue.includes(filterValue);
-                });
-            });
+                })
+            );
         },
         paginatedAffectations() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -143,140 +104,135 @@ export default {
         itemsPerPage() {
             this.currentPage = 1;
         },
-        date(newVal) {
-            if (newVal && this.structure) {
-                this.getMateriels();
-            }
+        date() {
+            if (this.date && this.structure) this.getMateriels();
         },
-        structure(newVal) {
-            if (newVal && this.date) {
-                this.getMateriels();
-            }
+        structure() {
+            if (this.structure && this.date) this.getMateriels();
         }
     },
     mounted() {
         this.getStructures();
         this.getMateriels();
-
-    },
+    }
 };
 </script>
 
 <template>
-    <div class="mx-auto px-4">
-        <div>
-            <button class="btn btn-dash  bg-white text-blue-900  rounded-none m-2">
-                Transfert </button>
-
+    <div class="mx-auto px-6 py-6 max-w-7xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-semibold text-blue-800">🔁 Transfert de Matériels</h2>
+            <button class="btn bg-white text-blue-900 border border-blue-400 rounded-none shadow-sm">
+                Transfert
+            </button>
         </div>
-        <div class="grid grid-cols-4 gap-12 max-w-7xl">
-            <div class="form-control">
-                <label for="date" class="label mt-5 mr-40">Veuillez sélectionner la date et les structures :</label>
-            </div>
-            <div class="form-control">
-                <label for="date" class="label"><span class="label-text">Date</span></label>
+
+        <!-- Filtres principaux -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 bg-gray-50 p-4 rounded-lg shadow-sm">
+            <div>
+                <label for="date" class="label-text font-medium">Date</label>
                 <input type="date" id="date" class="input input-bordered w-full" v-model="date" />
             </div>
-            <div class="form-control">
-                <label class="label"><span class="label-text">De Structure</span></label>
-                <select class="select input-bordered w-full" v-model="structure">
-                    <option disabled value="">Sélectionnez la structure</option>
+
+            <div>
+                <label class="label-text font-medium">De Structure</label>
+                <select class="select select-bordered w-full" v-model="structure">
+                    <option disabled value="">Sélectionnez</option>
                     <option v-for="item in structures" :key="item.id" :value="item.code_str">
                         {{ item.code_str }}
                     </option>
                 </select>
             </div>
-            <div class="form-control">
-                <label class="label"><span class="label-text">Vers Structure</span></label>
-                <select class="select input-bordered w-full" v-model="structureto">
-                    <option disabled value="">Sélectionnez la structure</option>
+
+            <div>
+                <label class="label-text font-medium">Vers Structure</label>
+                <select class="select select-bordered w-full" v-model="structureto">
+                    <option disabled value="">Sélectionnez</option>
                     <option v-for="item in structures" :key="item.id" :value="item.code_str">
                         {{ item.code_str }}
                     </option>
+                </select>
+            </div>
+
+            <div>
+                <label class="label-text font-medium">Lignes par page</label>
+                <select id="perPage" v-model.number="itemsPerPage" class="select select-bordered w-full">
+                    <option :value="20">20</option>
+                    <option :value="50">50</option>
+                    <option :value="70">70</option>
+                    <option :value="100">100</option>
+                    <option :value="150">150</option>
+                    <option :value="200">200</option>
                 </select>
             </div>
         </div>
 
-        <div class="overflow-x-auto mt-5">
-            <label for="perPage">Lignes par page :</label>
-            <select id="perPage" v-model.number="itemsPerPage">
-                <option :value="20">20</option>
-                <option :value="50">50</option>
-                <option :value="70">70</option>
-                <option :value="100">100</option>
-                <option :value="150">150</option>
-                <option :value="200">200</option>
-            </select>
-
-            <table class="table table-xs table-zebra">
-                <thead>
+        <!-- Tableau -->
+        <div class="overflow-x-auto mt-6 bg-white rounded-lg shadow-md">
+            <table class="table table-sm table-zebra w-full">
+                <thead class="bg-blue-100 text-blue-800">
                     <tr>
                         <th>#</th>
                         <th></th>
-                        <th><input v-model="filters.code_mat" placeholder="Code mat" class="input input-xs" /></th>
-                        <th><input v-model="filters.libelle" placeholder="Désignation" class="input input-xs" />
+                        <th><input v-model="filters.code_mat" placeholder="Code mat" class="input input-xs w-full" />
+                        </th>
+                        <th><input v-model="filters.libelle" placeholder="Désignation" class="input input-xs w-full" />
                         </th>
                         <th></th>
                     </tr>
-                    <tr>
-                        <th class="">#</th>
+                    <tr class="font-semibold">
+                        <th>#</th>
                         <th>A transférer</th>
                         <th>Code matériel</th>
                         <th>Désignation</th>
                         <th></th>
                     </tr>
                 </thead>
-                <tbody>
 
+                <tbody>
                     <tr v-for="(item, index) in paginatedAffectations" :key="item.code_mat">
-                        <th>{{ index + 1 }}</th>
+                        <td>{{ index + 1 }}</td>
                         <td>
-                            <label class="label">
-                                <input type="checkbox" class="checkbox" :value="item.code_mat"
-                                    v-model="selectedMateriels" />
-                            </label>
+                            <input type="checkbox" class="checkbox checkbox-sm" :value="item.code_mat"
+                                v-model="selectedMateriels" />
                         </td>
                         <td>{{ item.code_mat }}</td>
                         <td>{{ item.libelle }}</td>
                         <td></td>
                     </tr>
 
-                    <tr>
-                        <td colspan="4" style="text-align: right;"></td>
-                        <td></td>
+                    <tr v-if="paginatedAffectations.length === 0">
+                        <td colspan="5" class="text-center text-gray-500 py-4">
+                            Aucun matériel trouvé pour ces critères.
+                        </td>
                     </tr>
-
                 </tbody>
             </table>
+        </div>
 
-            <div class="flex justify-end mt-4 rounded">
-                <button class="btn bg-amber-500" @click="postTransfert">Enregistrer</button>
-            </div>
+        <!-- Actions -->
+        <div class="flex justify-end mt-5">
+            <button class="btn bg-amber-500 hover:bg-amber-600 text-white px-6" @click="postTransfert">
+                💾 Enregistrer le transfert
+            </button>
+        </div>
 
-            <div class="pagination">
-                <button @click="prevPage" :disabled="currentPage === 1">Précédent</button>
-                <button v-for="page in totalPages" :key="page" @click="goToPage(page)"
-                    :class="{ active: currentPage === page }">
-                    {{ page }}
-                </button>
-                <button @click="nextPage" :disabled="currentPage === totalPages">Suivant</button>
-            </div>
-
+        <!-- Pagination -->
+        <div class="flex justify-center items-center gap-2 mt-6">
+            <button class="btn btn-xs" @click="prevPage" :disabled="currentPage === 1">←</button>
+            <button v-for="page in totalPages" :key="page" @click="goToPage(page)"
+                :class="['btn btn-xs', currentPage === page ? 'btn-active' : '']">
+                {{ page }}
+            </button>
+            <button class="btn btn-xs" @click="nextPage" :disabled="currentPage === totalPages">→</button>
         </div>
     </div>
 </template>
 
 <style scoped>
-.pagination {
-    margin-top: 10px;
-}
-
-.pagination button {
-    margin: 0 5px;
-}
-
-.pagination button.active {
-    font-weight: bold;
-    background-color: #eee;
+.btn-active {
+    background-color: #2563eb;
+    color: white;
 }
 </style>

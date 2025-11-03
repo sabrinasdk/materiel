@@ -72,6 +72,106 @@ app.get("/familles", (req, res) => {
   });
 });
 
+// ✅ Route d'affectation de matériel (sans .promise)
+app.post("/affectation_materiel", verifyToken, (req, res) => {
+  const { structure, date, utilisateur, nombre } = req.body;
+  const dinfCode = "DINF";
+
+  if (!structure || !date) {
+    return res
+      .status(400)
+      .json({ error: "Champs 'structure' et 'date' requis." });
+  }
+
+  const insertQuery = `
+    INSERT INTO affectation (code_str, code_mat, beneficiaire, date, type_affectation, user_add)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `;
+
+  let count = 0;
+  let total = nombre;
+  let hasError = false;
+
+  for (let i = 1; i <= nombre; i++) {
+    const code_mat = req.body[`materiel_${i}`];
+    const type_affect = req.body[`affectation_definitive_${i}`];
+    const remplacement = req.body[`affectation_temporaire_${i}`];
+
+    console.log("➡️ Données reçues :", { code_mat, type_affect, remplacement });
+
+    if (!code_mat) {
+      total--;
+      continue;
+    }
+
+    // ✅ 1) Affectation principale
+    db.query(
+      insertQuery,
+      [structure, code_mat, utilisateur, date, type_affect, req.user.nom],
+      (err) => {
+        if (err) {
+          console.error("💥 Erreur insertion principale :", err);
+          if (!hasError) {
+            hasError = true;
+            return res
+              .status(500)
+              .json({ error: "Erreur SQL : " + err.message });
+          }
+          return;
+        }
+
+        console.log(`✅ ${code_mat} affecté à ${structure}`);
+
+        // 🔁 2) Si remplacement → transfert de l'ancien vers DINF
+        if (type_affect === "A la place de" && remplacement) {
+          db.query(
+            insertQuery,
+            [
+              dinfCode,
+              remplacement,
+              utilisateur,
+              date,
+              "Transfert vers DINF",
+              req.user.nom,
+            ],
+            (err2) => {
+              if (err2) {
+                console.error("💥 Erreur transfert DINF :", err2);
+                if (!hasError) {
+                  hasError = true;
+                  return res
+                    .status(500)
+                    .json({ error: "Erreur SQL DINF : " + err2.message });
+                }
+                return;
+              }
+              console.log(`🔁 ${remplacement} transféré vers ${dinfCode}`);
+
+              count++;
+              if (count === total && !hasError) {
+                res.json({
+                  success: true,
+                  message:
+                    "Toutes les affectations ont été enregistrées avec succès.",
+                });
+              }
+            }
+          );
+        } else {
+          count++;
+          if (count === total && !hasError) {
+            res.json({
+              success: true,
+              message:
+                "Toutes les affectations ont été enregistrées avec succès.",
+            });
+          }
+        }
+      }
+    );
+  }
+});
+
 app.get("/fournisseurs", verifyToken, (req, res) => {
   db.query(
     "SELECT * FROM fournisseur ORDER BY code_frs DESC",
@@ -90,6 +190,17 @@ app.get("/structures", (req, res) => {
   db.query("SELECT * FROM structure ORDER BY code_str ASC", (err, results) => {
     if (err) {
       console.error("Erreur de requête :", err);
+      res.status(500).json({ error: "Erreur dans la base de données" });
+    } else {
+      res.json(results);
+    }
+  });
+});
+
+app.get("/utilisateurs", (req, res) => {
+  db.query("SELECT * FROM utilisateur Order By nom ASC", (err, results) => {
+    if (err) {
+      console.error("Erreur de requete : get utilisateurs ", err);
       res.status(500).json({ error: "Erreur dans la base de données" });
     } else {
       res.json(results);

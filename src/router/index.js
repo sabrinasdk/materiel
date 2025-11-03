@@ -9,6 +9,7 @@ import PageTransfertMateriels from "@components/Transfert.vue";
 import PageReintegrationMateriels from "@components/Reintegration.vue";
 import LoginForm from "@components/Login.vue";
 import PageFacturationGlobaleMateriels from "@components/FacturationGlobale.vue";
+import PageUtilisateurs from "@components/Utilisateurs.vue";
 import HomePage from "@components/Home.vue"; // ← ajoute ton composant d’accueil
 
 const routes = [
@@ -42,6 +43,12 @@ const routes = [
     path: "/fournisseurs",
     name: "PageFournisseurs",
     component: PageFournisseurs,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/utilisateurs",
+    name: "PageUtilisateurs",
+    component: PageUtilisateurs,
     meta: { requiresAuth: true },
   },
   {

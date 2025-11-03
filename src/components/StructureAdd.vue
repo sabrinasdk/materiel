@@ -35,72 +35,66 @@ export default {
 };
 </script>
 
-
 <template>
     <dialog id="my_modal_4" class="modal">
-        <div class="modal-box w-11/12 max-w-5xl">
+        <div class="modal-box w-11/12 max-w-4xl">
+            <!-- Bouton de fermeture -->
             <form method="dialog">
                 <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
             </form>
-            <h3 class="text-lg font-bold">Nouvelle Structure </h3>
 
-            <div class="flex w-full flex-col lg:flex-row">
-                <div class="w-1/3 ">
+            <!-- Titre -->
+            <h3 class="text-xl font-bold mb-6">🏢 Nouvelle Structure</h3>
 
+            <!-- Contenu principal -->
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Colonne 1 -->
+                <div class="w-full lg:w-1/3 space-y-4">
                     <fieldset class="fieldset">
                         <legend class="fieldset-legend">Code Structure</legend>
-                        <input type="text" class="input" placeholder="Type here" v-model="form.code_fam" />
-                        <p class="label"></p>
+                        <input type="text" class="input input-bordered w-full" placeholder="Ex: STR001"
+                            v-model="form.code_fam" />
                     </fieldset>
 
                     <fieldset class="fieldset">
                         <legend class="fieldset-legend">Type</legend>
-                        <input type="text" class="input" placeholder="Type here" v-model="form.code_fam" />
-                        <p class="label"></p>
+                        <input type="text" class="input input-bordered w-full" placeholder="Type de structure"
+                            v-model="form.code_fam" />
                     </fieldset>
-
-
                 </div>
-                <div class="w-1/3 ">
+
+                <!-- Colonne 2 -->
+                <div class="w-full lg:w-1/3 space-y-4">
                     <fieldset class="fieldset">
                         <legend class="fieldset-legend">Libellé</legend>
-                        <input type="text" class="input" placeholder="Désignation" v-model="form.libelle" />
-                        <p class="label"></p>
+                        <input type="text" class="input input-bordered w-full" placeholder="Nom de la structure"
+                            v-model="form.libelle" />
                     </fieldset>
+
                     <fieldset class="fieldset">
                         <legend class="fieldset-legend">Projet</legend>
-                        <input type="text" class="input" placeholder="Désignation" v-model="form.libelle" />
-                        <p class="label"></p>
+                        <input type="text" class="input input-bordered w-full" placeholder="Nom du projet"
+                            v-model="form.libelle" />
                     </fieldset>
-
                 </div>
-                <div class="w-1/3 ">
+
+                <!-- Colonne 3 -->
+                <div class="w-full lg:w-1/3 space-y-4">
                     <fieldset class="fieldset">
                         <legend class="fieldset-legend">Date création</legend>
-                        <input type="text" class="input" placeholder="Désignation" v-model="form.libelle" />
-                        <p class="label"></p>
+                        <input type="text" class="input input-bordered w-full" placeholder="JJ/MM/AAAA"
+                            v-model="form.libelle" />
                     </fieldset>
-                    <div class="flex mt-2">
-                        <div class="modal-action">
-                            <form method="dialog">
-                                <button @click="submitForm" class="btn bg-amber-500">Envoyer</button>
-                            </form>
-                        </div>
 
+                    <div class="flex justify-end mt-4">
+                        <form method="dialog">
+                            <button @click="submitForm" class="btn bg-amber-500 text-white hover:bg-amber-600 w-full">
+                                ✅ Envoyer
+                            </button>
+                        </form>
                     </div>
                 </div>
-
-
-
-                <!--
-            <div class="modal-action">
-                <form method="dialog">
-                   
-                    <button class="btn">Close</button>
-                </form>
-            </div>-->
             </div>
         </div>
     </dialog>
-
 </template>

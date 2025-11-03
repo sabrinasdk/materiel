@@ -1,31 +1,24 @@
 <script>
 import axios from 'axios';
 export default {
-    name: 'AffectationAdd', // Nom du composant
+    name: 'AffectationAdd',
     data() {
         return {
-            title: 'Bienvenue',
-            message: 'Ceci est une page Vue.js',
             form: {
-                code_frs: '',
-                libelle: '',
-                telephone: '',
-                adresse: '',
-                email: '',
+                structure: '',       // ✅ correspond au backend
+                date: '',
+                utilisateur: '',
+                nombre: 0
             },
             structures: [],
             materiels: []
-
         };
     },
     mounted() {
-        // Code exécuté après le montage du composant
         this.getStructures();
         this.getMateriels();
-        console.log('Page montée');
     },
     methods: {
-
         async getStructures() {
             try {
                 const response = await axios.get('http://localhost:3000/structures');
@@ -39,26 +32,28 @@ export default {
                 const response = await axios.get('http://localhost:3000/materiel');
                 this.materiels = response.data;
             } catch (error) {
-                console.error('Erreur lors de la récupération des materiels :', error);
+                console.error('Erreur lors de la récupération des matériels :', error);
             }
         },
-
         async submitForm() {
-            try {
-                const response = await axios.post('http://localhost:3000/api/fournisseurs', this.form);
-                console.log('Success:', response.data);
-                alert('Data inserted successfully!');
-                this.$emit('fournisseur-ajoute');
+            console.log("Form envoyé :", this.form);
 
+            try {
+                const response = await axios.post(
+                    'http://localhost:3000/affectation_materiel',
+                    this.form
+                );
+                console.log('Success:', response.data);
+                alert('Affectation enregistrée avec succès !');
+                this.$emit('affectation-ajoute');
             } catch (error) {
-                console.error('Error submitting form:', error);
-                alert('There was an error inserting data.');
+                console.error('Erreur lors de l’envoi du formulaire :', error);
+                alert('Erreur lors de l’enregistrement de l’affectation.');
             }
         }
     }
 };
 </script>
-
 
 <template>
     <dialog id="my_modal_4" class="modal">
@@ -66,86 +61,78 @@ export default {
             <form method="dialog">
                 <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
             </form>
-            <h3 class="text-lg font-bold">Nouvelle Affectation </h3>
-            <div class="flex w-full flex-col lg:flex-row">
-                <div class="w-full flex flex-col lg:flex-row gap-4"> <!-- flex en ligne dès lg (large) -->
 
-                    <fieldset class="fieldset w-full lg:w-1/3">
-                        <legend class="fieldset-legend">Structure</legend>
-                        <select class="select" v-model="form.code_structure">
-                            <option v-for="item in structures" :key="item.id">
-                                {{ item.libelle }}
-                            </option>
-                        </select>
-                        <p class="label"></p>
-                    </fieldset>
+            <h3 class="text-lg font-bold mb-3 text-blue-700 text-center">
+                🔗 Nouvelle Affectation
+            </h3>
 
-                    <fieldset class="fieldset w-full lg:w-1/3">
-                        <legend class="fieldset-legend">Date</legend>
-                        <input type="date" class="input" placeholder="" v-model="form.date" />
-                        <p class="label"></p>
-                    </fieldset>
+            <!-- Ligne principale -->
+            <div class="flex flex-col lg:flex-row gap-4 mb-4">
+                <fieldset class="fieldset w-full lg:w-1/3">
+                    <legend class="fieldset-legend">Structure</legend>
+                    <select class="select" v-model="form.structure">
+                        <option value="">-- Choisir une structure --</option>
+                        <option v-for="item in structures" :key="item.id" :value="item.code_str">
+                            {{ item.libelle }}
+                        </option>
+                    </select>
+                </fieldset>
 
-                    <fieldset class="fieldset w-full lg:w-1/3">
-                        <legend class="fieldset-legend">Utilisateur</legend>
-                        <input type="text" class="input" placeholder="" v-model="form.utilisateur" />
-                        <p class="label"></p>
-                    </fieldset>
-                    <fieldset class="fieldset w-full lg:w-1/3">
-                        <legend class="fieldset-legend">Nombre</legend>
-                        <input type="number" class="input" placeholder="" v-model="form.nombre" />
-                        <p class="label"></p>
-                    </fieldset>
+                <fieldset class="fieldset w-full lg:w-1/3">
+                    <legend class="fieldset-legend">Date</legend>
+                    <input type="date" class="input" v-model="form.date" />
+                </fieldset>
 
-                </div>
+                <fieldset class="fieldset w-full lg:w-1/3">
+                    <legend class="fieldset-legend">Utilisateur</legend>
+                    <input type="text" class="input" v-model="form.utilisateur" placeholder="Nom de l'utilisateur" />
+                </fieldset>
+
+                <fieldset class="fieldset w-full lg:w-1/3">
+                    <legend class="fieldset-legend">Nombre de matériels</legend>
+                    <input type="number" class="input" v-model="form.nombre" min="1" />
+                </fieldset>
             </div>
 
-            <div class="flex w-full flex-col lg:flex-row">
-                <div class="w-full flex flex-col lg:flex-row gap-4">
+            <!-- Matériels dynamiques -->
+            <div v-for="n in form.nombre" :key="n" class="border border-gray-300 p-3 rounded-lg mb-3">
+                <div class="flex flex-col lg:flex-row gap-4">
                     <fieldset class="fieldset w-full lg:w-1/3">
-                        <legend class="fieldset-legend">Matériel</legend>
-                        <select class="select" v-model="form.materiel">
-                            <option v-for="item in materiels" :key="item.id" :value="item.id">
-                                {{ item.matricule }} {{ item.libelle }}
+                        <legend class="fieldset-legend">Matériel {{ n }}</legend>
+                        <select class="select" v-model="form[`materiel_${n}`]">
+                            <option value="">-- Choisir --</option>
+                            <option v-for="item in materiels" :key="item.id" :value="item.matricule">
+                                {{ item.matricule }} - {{ item.libelle }}
                             </option>
                         </select>
-                        <p class="label"></p>
                     </fieldset>
 
                     <fieldset class="fieldset w-full lg:w-1/3">
-                        <legend class="fieldset-legend">Affectation Définitive</legend>
-                        <select class="select" v-model="form.affectation_definitive">
+                        <legend class="fieldset-legend">Type d’affectation</legend>
+                        <select class="select" v-model="form[`affectation_definitive_${n}`]">
                             <option value="Affectation Définitive">Affectation Définitive</option>
-                            <option value="A la place de">A la place de :</option>
+                            <option value="A la place de">A la place de</option>
                         </select>
-                        <p class="label"></p>
                     </fieldset>
 
-                    <!-- Ce champ n'apparaît que si "non" est sélectionné -->
-                    <fieldset class="fieldset w-full lg:w-1/3" v-if="form.affectation_definitive === 'A la place de'">
-                        <legend class="fieldset-legend">Choix temporaire</legend>
-                        <select class="select" v-model="form.affectation_temporaire">
-                            <option v-for="item in materiels" :key="item.id" :value="item.id">
-                                {{ item.matricule }} {{ item.libelle }}
+                    <fieldset v-if="form[`affectation_definitive_${n}`] === 'A la place de'"
+                        class="fieldset w-full lg:w-1/3">
+                        <legend class="fieldset-legend">Remplaçant</legend>
+                        <select class="select" v-model="form[`affectation_temporaire_${n}`]">
+                            <option value="">-- Choisir --</option>
+                            <option v-for="item in materiels" :key="item.id" :value="item.matricule">
+                                {{ item.matricule }} - {{ item.libelle }}
                             </option>
                         </select>
-                        <p class="label"></p>
                     </fieldset>
-
                 </div>
-
-            </div>
-            <div class="flex mt-2">
-                <div class="modal-action ml-auto">
-                    <form method="dialog">
-                        <button @click="submitForm" class="btn bg-amber-500">Envoyer</button>
-                    </form>
-                </div>
-
             </div>
 
-
+            <div class="modal-action">
+                <button type="button" @click="submitForm" class="btn bg-amber-500 text-white">
+                    ✅ Envoyer
+                </button>
+            </div>
         </div>
     </dialog>
-
 </template>

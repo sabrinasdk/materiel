@@ -38,59 +38,43 @@ export default {
 
 <template>
     <dialog id="my_modal_4" class="modal">
-        <div class="modal-box w-11/12 max-w-5xl">
+        <div class="modal-box w-11/12 max-w-4xl">
+            <!-- Bouton de fermeture -->
             <form method="dialog">
                 <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
             </form>
-            <h3 class="text-lg font-bold">Nouvelle Famille </h3>
 
-            <div class="flex w-full flex-col lg:flex-row">
-                <div class="w-1/3 ">
+            <!-- Titre -->
+            <h3 class="text-xl font-bold mb-6">📦 Nouvelle Famille</h3>
 
+            <!-- Contenu principal -->
+            <div class="flex flex-col lg:flex-row gap-6">
+                <!-- Colonne 1 -->
+                <div class="w-full lg:w-1/2 space-y-4">
                     <fieldset class="fieldset">
                         <legend class="fieldset-legend">Code Famille</legend>
-                        <input type="text" class="input" placeholder="Type here" v-model="form.code_fam" />
-                        <p class="label"></p>
-
+                        <input type="text" class="input input-bordered w-full" placeholder="Ex: FAM001"
+                            v-model="form.code_fam" />
                     </fieldset>
+                </div>
+
+                <!-- Colonne 2 -->
+                <div class="w-full lg:w-1/2 space-y-4">
                     <fieldset class="fieldset">
-
+                        <legend class="fieldset-legend">Libellé Famille</legend>
+                        <input type="text" class="input input-bordered w-full" placeholder="Désignation de la famille"
+                            v-model="form.libelle" />
                     </fieldset>
 
+                    <div class="flex justify-end mt-4">
+                        <form method="dialog">
+                            <button @click="submitForm" class="btn bg-amber-500 text-white hover:bg-amber-600 w-full">
+                                ✅ Envoyer
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                <div class="w-1/3 ">
-                    <fieldset class="fieldset">
-                        <legend class="fieldset-legend">Libellé famille</legend>
-                        <input type="text" class="input" placeholder="Désignation" v-model="form.libelle" />
-                        <p class="label"></p>
-                    </fieldset>
-                </div>
-                <div class="w-1/8">
-
-                </div>
-
-                <div class="flex justify-end">
-                    <fieldset class="fieldset">
-                        <div class="modal-action">
-                            <form method="dialog">
-
-                                <button @click="submitForm" class="btn bg-amber-500">Envoyer</button>
-                            </form>
-                        </div>
-                    </fieldset>
-
-                </div>
-
-
-                <!--
-            <div class="modal-action">
-                <form method="dialog">
-                   
-                    <button class="btn">Close</button>
-                </form>
-            </div>-->
             </div>
         </div>
     </dialog>
-
 </template>

@@ -14,28 +14,20 @@ export default {
             currentPage: 1,
             itemsPerPage: 150,
             filters: {
-
                 code_str: '',
                 libelle: '',
-
             }
         };
     },
     methods: {
         goToPage(page) {
-            if (page >= 1 && page <= this.totalPages) {
-                this.currentPage = page;
-            }
+            if (page >= 1 && page <= this.totalPages) this.currentPage = page;
         },
         nextPage() {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++;
-            }
+            if (this.currentPage < this.totalPages) this.currentPage++;
         },
         prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-            }
+            if (this.currentPage > 1) this.currentPage--;
         },
         fetchStructures() {
             axios.get('http://localhost:3000/structures')
@@ -43,18 +35,11 @@ export default {
                     this.structures = response.data;
                 })
                 .catch(error => {
-                    console.error('Erreur lors de la récupération des matériels :', error);
+                    console.error('Erreur lors de la récupération des structures :', error);
                 });
         },
     },
     computed: {
-        /*paginatedStructures() {
-          const start = (this.currentPage - 1) * this.itemsPerPage;
-          return this.structures.slice(start, start + this.itemsPerPage);
-        },
-        totalPages() {
-          return Math.ceil(this.structures.length / this.itemsPerPage);
-        }*/
         filteredStructures() {
             return this.structures.filter(item => {
                 return Object.keys(this.filters).every(key => {
@@ -69,109 +54,112 @@ export default {
             return this.filteredStructures.slice(start, start + this.itemsPerPage);
         },
         totalPages() {
-            return Math.ceil(this.filteredStructures.length / this.itemsPerPage);
+            return Math.ceil(this.filteredStructures.length / this.itemsPerPage) || 1;
         }
     },
-
     watch: {
         itemsPerPage() {
             this.currentPage = 1;
         }
     },
-
     mounted() {
         this.fetchStructures();
-
     },
 };
 </script>
 
 <template>
+    <div class="mx-auto px-6 py-6 max-w-7xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-semibold text-blue-800">🏢 Structures</h2>
+            <button class="btn bg-white text-blue-900 border border-blue-400 rounded-none shadow-sm"
+                onclick="my_modal_4.showModal()">
+                ➕ Nouvelle Structure
+            </button>
+        </div>
 
-    <!-- You can open the modal using ID.showModal() method -->
+        <!-- Filtres -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 p-4 rounded-lg shadow-sm">
+            <div>
+                <label class="label-text font-medium">Code Structure</label>
+                <input v-model="filters.code_str" placeholder="Filtrer par code" class="input input-bordered w-full" />
+            </div>
 
-    <div class=" mx-auto px-4 ">
+            <div>
+                <label class="label-text font-medium">Libellé</label>
+                <input v-model="filters.libelle" placeholder="Filtrer par libellé"
+                    class="input input-bordered w-full" />
+            </div>
 
-        <button class="btn btn-dash  bg-white text-blue-900  rounded-none m-2" onclick="my_modal_4.showModal()">Ajouter
+            <div>
+                <label class="label-text font-medium">Lignes par page</label>
+                <select v-model.number="itemsPerPage" class="select select-bordered w-full">
+                    <option :value="20">20</option>
+                    <option :value="50">50</option>
+                    <option :value="70">70</option>
+                    <option :value="100">100</option>
+                    <option :value="150">150</option>
+                    <option :value="200">200</option>
+                </select>
+            </div>
+        </div>
 
-            structure</button>
-
+        <!-- Modal d’ajout -->
         <StructureAdd @structure-ajoute="fetchStructures" />
-        <div class="overflow-x-auto">
-            <label for="perPage">Lignes par page :</label>
-            <select id="perPage" v-model.number="itemsPerPage">
-                <option :value="20">20</option>
-                <option :value="50">50</option>
-                <option :value="70">70</option>
-                <option :value="100">100</option>
-                <option :value="150">150</option>
-                <option :value="100">200</option>
-            </select>
-            <table class="table table-xs table-zebra">
-                <thead>
-                    <tr>
+
+        <!-- Tableau -->
+        <div class="overflow-x-auto mt-6 bg-white rounded-lg shadow-md">
+            <table class="table table-sm table-zebra w-full">
+                <thead class="bg-blue-100 text-blue-800">
+                    <tr class="font-semibold">
                         <th>#</th>
-                        <th><input v-model="filters.code_str" placeholder="Filtrer" class="input input-xs" /></th>
-                        <th><input v-model="filters.libelle" placeholder="Filtrer" class="input input-xs" /></th>
-                        <th></th>
-                    </tr>
-                    <tr>
-                        <th>#</th>
-                        <th>Matricule</th>
-                        <th>Structure</th>
+                        <th>Code Structure</th>
+                        <th>Libellé</th>
                         <th>Type</th>
                         <th>Projet</th>
-                        <th>Date création</th>
-                        <th>Date cloture</th>
-
+                        <th>Date Création</th>
+                        <th>Date Clôture</th>
                     </tr>
                 </thead>
+
                 <tbody>
+                    <tr v-for="(item, index) in paginatedStructures" :key="item.code_str">
+                        <td>{{ index + 1 + (currentPage - 1) * itemsPerPage }}</td>
+                        <td>{{ item.code_str }}</td>
+                        <td>{{ item.libelle }}</td>
+                        <td>{{ item.type_str }}</td>
+                        <td>{{ item.projet }}</td>
+                        <td>{{ item.date_creation }}</td>
+                        <td>{{ item.date_cloture }}</td>
+                    </tr>
 
-                    <tr v-for="(item, index) in paginatedStructures" :key="item.code_mat">
-                        <th class="w-1/15 ">{{ index + 1 }}</th>
-                        <td class="w-1/5 ">{{ item.code_str }}</td>
-                        <td class="w-1/5 ">{{ item.libelle }}</td>
-                        <td class="w-1/5 ">{{ item.type_str }}</td>
-                        <td class="w-1/8 ">{{ item.projet }}</td>
-                        <td class="w-1/5 ">{{ item.date_creation }}</td>
-                        <td class="w-1/5 ">{{ item.date_cloture }}</td>
-
+                    <tr v-if="paginatedStructures.length === 0">
+                        <td colspan="7" class="text-center text-gray-500 py-4">
+                            Aucune structure trouvée pour ces critères.
+                        </td>
                     </tr>
                 </tbody>
-
-                <!-- Pagination -->
-
             </table>
-            <div class="pagination">
-                <button @click="prevPage" :disabled="currentPage === 1">Précédent</button>
+        </div>
 
-                <button v-for="page in totalPages" :key="page" @click="goToPage(page)"
-                    :class="{ active: currentPage === page }">
-                    {{ page }}
-                </button>
+        <!-- Pagination -->
+        <div class="flex justify-center items-center gap-2 mt-6">
+            <button class="btn btn-xs" @click="prevPage" :disabled="currentPage === 1">←</button>
 
-                <button @click="nextPage" :disabled="currentPage === totalPages">Suivant</button>
-            </div>
+            <button v-for="page in totalPages" :key="page" @click="goToPage(page)"
+                :class="['btn btn-xs', currentPage === page ? 'btn-active' : '']">
+                {{ page }}
+            </button>
+
+            <button class="btn btn-xs" @click="nextPage" :disabled="currentPage === totalPages">→</button>
         </div>
     </div>
 </template>
 
 <style scoped>
-.read-the-docs {
-    color: #888;
-}
-
-.pagination {
-    margin-top: 10px;
-}
-
-.pagination button {
-    margin: 0 5px;
-}
-
-.pagination button.active {
-    font-weight: bold;
-    background-color: #eee;
+.btn-active {
+    background-color: #2563eb;
+    color: white;
 }
 </style>

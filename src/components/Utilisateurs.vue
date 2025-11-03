@@ -1,22 +1,23 @@
 <script>
-import AddFamille from './AddFamille.vue'
+import UtilisateurAdd from './UtilisateurAdd.vue'
 import axios from 'axios'
 
 export default {
-    name: 'PageFamilles',
+    name: 'PageUtilisateurs',
     components: {
-        AddFamille,
+        UtilisateurAdd,
     },
     data() {
         return {
-            title: 'Page Famille',
-            familles: [],
+            title: 'Page Utilisateur',
+            utilisateurs: [],
             currentPage: 1,
             itemsPerPage: 150,
             filters: {
-                code_fam: '',
-                libelle: '',
-            }
+                matricule_utl: '',
+                nom: '',
+                fonction: '',
+            },
         };
     },
     methods: {
@@ -29,15 +30,15 @@ export default {
         prevPage() {
             if (this.currentPage > 1) this.currentPage--;
         },
-        fetchFamilles() {
-            axios.get('http://localhost:3000/familles')
-                .then(response => (this.familles = response.data))
-                .catch(error => console.error('Erreur lors de la récupération des familles :', error));
-        }
+        fetchUtilisateurs() {
+            axios.get('http://localhost:3000/utilisateurs')
+                .then(response => (this.utilisateurs = response.data))
+                .catch(error => console.error('Erreur lors de la récupération des utilisateurs :', error));
+        },
     },
     computed: {
-        filteredFamilles() {
-            return this.familles.filter(item =>
+        filteredUtilisateurs() {
+            return this.utilisateurs.filter(item =>
                 Object.keys(this.filters).every(key => {
                     const filterValue = this.filters[key]?.toString().toLowerCase();
                     const itemValue = item[key]?.toString().toLowerCase();
@@ -45,21 +46,21 @@ export default {
                 })
             );
         },
-        paginatedFamilles() {
+        paginatedUtilisateurs() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
-            return this.filteredFamilles.slice(start, start + this.itemsPerPage);
+            return this.filteredUtilisateurs.slice(start, start + this.itemsPerPage);
         },
         totalPages() {
-            return Math.ceil(this.filteredFamilles.length / this.itemsPerPage) || 1;
-        }
+            return Math.ceil(this.filteredUtilisateurs.length / this.itemsPerPage) || 1;
+        },
     },
     watch: {
         itemsPerPage() {
             this.currentPage = 1;
-        }
+        },
     },
     mounted() {
-        this.fetchFamilles();
+        this.fetchUtilisateurs();
     },
 };
 </script>
@@ -68,23 +69,29 @@ export default {
     <div class="mx-auto px-6 py-6 max-w-7xl">
         <!-- Header -->
         <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-semibold text-blue-800">📦 Familles Matériels</h2>
+            <h2 class="text-2xl font-semibold text-blue-800">👥 Liste des Utilisateurs</h2>
             <button class="btn bg-white text-blue-900 border border-blue-400 rounded-none shadow-sm"
                 onclick="my_modal_4.showModal()">
-                ➕ Nouvelle Famille
+                ➕ Nouvel Utilisateur
             </button>
         </div>
 
         <!-- Filtres -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 p-4 rounded-lg shadow-sm">
             <div>
-                <label class="label-text font-medium">Code Famille</label>
-                <input v-model="filters.code_fam" placeholder="Filtrer par code" class="input input-bordered w-full" />
+                <label class="label-text font-medium">Matricule</label>
+                <input v-model="filters.matricule_utl" placeholder="Filtrer par matricule"
+                    class="input input-bordered w-full" />
             </div>
 
             <div>
-                <label class="label-text font-medium">Libellé</label>
-                <input v-model="filters.libelle" placeholder="Filtrer par libellé"
+                <label class="label-text font-medium">Nom</label>
+                <input v-model="filters.nom" placeholder="Filtrer par nom" class="input input-bordered w-full" />
+            </div>
+
+            <div>
+                <label class="label-text font-medium">Fonction</label>
+                <input v-model="filters.fonction" placeholder="Filtrer par fonction"
                     class="input input-bordered w-full" />
             </div>
 
@@ -101,7 +108,7 @@ export default {
             </div>
         </div>
 
-        <AddFamille @famille-ajoute="fetchFamilles" />
+        <UtilisateurAdd @utilisateur-ajoute="fetchUtilisateurs" />
 
         <!-- Tableau -->
         <div class="overflow-x-auto mt-6 bg-white rounded-lg shadow-md">
@@ -109,21 +116,23 @@ export default {
                 <thead class="bg-blue-100 text-blue-800">
                     <tr class="font-semibold">
                         <th>#</th>
-                        <th>Code Famille</th>
-                        <th>Libellé</th>
+                        <th>Matricule</th>
+                        <th>Nom</th>
+                        <th>Fonction</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    <tr v-for="(item, index) in paginatedFamilles" :key="item.code_fam">
+                    <tr v-for="(item, index) in paginatedUtilisateurs" :key="item.matricule_utl">
                         <td>{{ index + 1 + (currentPage - 1) * itemsPerPage }}</td>
-                        <td>{{ item.code_fam }}</td>
-                        <td>{{ item.libelle }}</td>
+                        <td>{{ item.matricule_utl }}</td>
+                        <td>{{ item.nom }}</td>
+                        <td>{{ item.fonction }}</td>
                     </tr>
 
-                    <tr v-if="paginatedFamilles.length === 0">
-                        <td colspan="3" class="text-center text-gray-500 py-4">
-                            Aucune famille trouvée pour ces critères.
+                    <tr v-if="paginatedUtilisateurs.length === 0">
+                        <td colspan="4" class="text-center text-gray-500 py-4">
+                            Aucun utilisateur trouvé pour ces critères.
                         </td>
                     </tr>
                 </tbody>
