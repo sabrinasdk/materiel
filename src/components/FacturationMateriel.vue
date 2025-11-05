@@ -1,11 +1,17 @@
 <script>
 import axios from 'axios';
+import jsPDF from 'jspdf';
+
+import autoTable from 'jspdf-autotable';
+
+// ✅ attache la méthode autoTable à jsPDF
+
 
 export default {
     name: 'PageFacturationMateriels',
     data() {
         return {
-            title: 'Page Facturation Materiel',
+            title: 'Page Facturation Matériel',
             materiels: [],
             affectations: [],
             currentPage: 1,
@@ -21,7 +27,6 @@ export default {
                 matricule_utl: '',
                 type_affectation: '',
             },
-            // Table de correspondance code_fam → libelle
             famillesMap: {
                 L40: "Écran",
                 L02: "Imprimante",
@@ -39,22 +44,59 @@ export default {
             }
         };
     },
+
     methods: {
-        goToPage(page) {
-            if (page >= 1 && page <= this.totalPages) {
-                this.currentPage = page;
-            }
-        },
-        nextPage() {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++;
-            }
-        },
-        prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-            }
-        },
+        /** 🧾 Génération du PDF **/
+        telechargerFacture() {
+            const doc = new jsPDF();
+            const titre = `Facture Materiels Informatique - ${this.structure} (${this.mois})`;
+
+            doc.setFontSize(16);
+            doc.text(titre, 14, 20);
+
+            doc.setFontSize(12);
+            doc.text(`Date de génération : ${new Date().toLocaleDateString()}`, 14, 30);
+
+            // ✅ Tableau totaux par famille
+            const dataFamilles = this.totauxParFamille.map(f => [
+                f.famille,
+                f.count,
+                `${f.total} DzD`
+            ]);
+
+            autoTable(doc, {
+                head: [['Famille', 'Nb matériels', 'Total (DzD)']],
+                body: dataFamilles,
+                startY: 40,
+                styles: { fontSize: 10 },
+            });
+
+            // ✅ Tableau détails
+            const dataDetails = this.filteredAffectations.map((item, i) => [
+                i + 1,
+                item.code_mat,
+                item.libelle,
+                item.montant,
+                ((((parseFloat(item.montant.replace(',', '.')) / 5)
+                    + (parseFloat(item.montant.replace(',', '.')) * 0.3)
+                    + (parseFloat(item.montant.replace(',', '.')) * 0.10)) / 12).toFixed(2))
+            ]);
+
+            autoTable(doc, {
+                head: [['#', 'Code matériel', 'Désignation', 'Montant', 'Location (DzD)']],
+                body: dataDetails,
+                startY: doc.lastAutoTable.finalY + 10,
+                styles: { fontSize: 9 },
+            });
+
+            doc.text(`Total général : ${this.totalMontantCalcule} DzD`, 14, doc.lastAutoTable.finalY + 15);
+
+            // ✅ Sauvegarde du PDF
+            doc.save(`Facture_${this.structure}_${this.mois}.pdf`);
+        }
+        ,
+
+        /** 🔹 Récupération des structures **/
         getStructures() {
             axios.get('http://localhost:3000/structures')
                 .then(response => {
@@ -65,6 +107,7 @@ export default {
                 });
         },
 
+        /** 🔹 Récupération des matériels affectés **/
         getMateriels() {
             try {
                 this.dateComplete = this.getDernierJourDuMois(this.mois);
@@ -74,7 +117,6 @@ export default {
                     structure: this.structure
                 })
                     .then((response) => {
-                        // Ajout automatique du champ famille selon les 3 premières lettres du code
                         this.affectations = response.data.map(item => {
                             const prefix = item.code_mat ? item.code_mat.substring(0, 3) : '';
                             item.famille = this.famillesMap[prefix] || 'Autre';
@@ -84,12 +126,12 @@ export default {
                     .catch((error) => {
                         console.error('Erreur lors de la récupération des affectations :', error);
                     });
-
             } catch (err) {
                 console.error('Erreur inattendue dans getMateriels() :', err);
             }
         },
 
+        /** 🗓️ Obtenir le dernier jour du mois **/
         getDernierJourDuMois(mois) {
             const [annee, moisStr] = mois.split("-");
             const anneeNum = parseInt(annee, 10);
@@ -99,47 +141,43 @@ export default {
             const mm = String(dernierJour.getMonth() + 1).padStart(2, "0");
             const dd = String(dernierJour.getDate()).padStart(2, "0");
             return `${yyyy}-${mm}-${dd}`;
+        },
+
+        /** 🔹 Pagination **/
+        goToPage(page) {
+            if (page >= 1 && page <= this.totalPages) this.currentPage = page;
+        },
+        nextPage() {
+            if (this.currentPage < this.totalPages) this.currentPage++;
+        },
+        prevPage() {
+            if (this.currentPage > 1) this.currentPage--;
         }
     },
 
     computed: {
-        // Totaux par structure
-        totauxParStructure() {
-            const result = {};
-            this.filteredAffectations.forEach(item => {
-                const structure = item.code_str;
-                const montant = parseFloat(item.montant.replace(',', '.')) || 0;
-                const montantCalcule = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
-                if (!result[structure]) {
-                    result[structure] = 0;
-                }
-                result[structure] += montantCalcule;
-            });
-            return Object.entries(result).map(([structure, total]) => ({
-                structure,
-                total: total.toFixed(2)
-            }));
-        },
-
-        // Totaux par famille
+        /** Totaux par famille **/
         totauxParFamille() {
             const result = {};
             this.filteredAffectations.forEach(item => {
                 const famille = item.famille || 'Non définie';
                 const montant = parseFloat(item.montant.replace(',', '.')) || 0;
                 const montantCalcule = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
-                if (!result[famille]) {
-                    result[famille] = 0;
-                }
-                result[famille] += montantCalcule;
+
+                if (!result[famille]) result[famille] = { total: 0, count: 0 };
+
+                result[famille].total += montantCalcule;
+                result[famille].count++;
             });
-            return Object.entries(result).map(([famille, total]) => ({
+
+            return Object.entries(result).map(([famille, data]) => ({
                 famille,
-                total: total.toFixed(2)
+                total: data.total.toFixed(2),
+                count: data.count
             }));
         },
 
-        // Groupement des matériels par famille
+        /** Groupement par famille **/
         groupByFamille() {
             const groupes = {};
             this.filteredAffectations.forEach(item => {
@@ -150,14 +188,16 @@ export default {
             return groupes;
         },
 
+        /** Total général **/
         totalMontantCalcule() {
-            return this.paginatedAffectations.reduce((total, item) => {
-                let montant = parseFloat(item.montant.replace(',', '.')) || 0;
-                let result = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
-                return total + result;
+            return this.filteredAffectations.reduce((total, item) => {
+                const montant = parseFloat(item.montant.replace(',', '.')) || 0;
+                const calcul = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
+                return total + calcul;
             }, 0).toFixed(2);
         },
 
+        /** Filtrage **/
         filteredAffectations() {
             return this.affectations.filter(item => {
                 return Object.keys(this.filters).every(key => {
@@ -168,6 +208,7 @@ export default {
             });
         },
 
+        /** Pagination **/
         paginatedAffectations() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
             return this.filteredAffectations.slice(start, start + this.itemsPerPage);
@@ -183,14 +224,10 @@ export default {
             this.currentPage = 1;
         },
         mois(newVal) {
-            if (newVal && this.structure) {
-                this.getMateriels();
-            }
+            if (newVal && this.structure) this.getMateriels();
         },
         structure(newVal) {
-            if (newVal && this.mois) {
-                this.getMateriels();
-            }
+            if (newVal && this.mois) this.getMateriels();
         }
     },
 
@@ -203,15 +240,17 @@ export default {
 
 <template>
     <div class="mx-auto px-4">
-        <h3 class="font-bold text-lg mb-4 text-primary">Facturation des Équipements Informatiques</h3>
+        <h3 class="font-bold text-lg mb-4 text-primary">
+            Facturation des Équipements Informatiques
+        </h3>
 
         <div class="grid grid-cols-2 gap-4 max-w-xl">
             <div class="form-control">
-                <label for="mois" class="label"><span class="label-text">Mois</span></label>
-                <input type="month" id="mois" class="input input-bordered w-full" v-model="mois" />
+                <label class="label-text font-medium">Mois</label>
+                <input type="month" class="input input-bordered w-full" v-model="mois" />
             </div>
             <div class="form-control">
-                <label class="label"><span class="label-text">Structure</span></label>
+                <label class="label-text font-medium">Structure</label>
                 <select class="select input-bordered w-full" v-model="structure">
                     <option disabled value="">Sélectionnez la structure</option>
                     <option v-for="item in structures" :key="item.id" :value="item.code_str">
@@ -228,6 +267,7 @@ export default {
                 <tr>
                     <th>#</th>
                     <th>Famille</th>
+                    <th>Nb Matériels</th>
                     <th>Total (DzD)</th>
                 </tr>
             </thead>
@@ -235,12 +275,13 @@ export default {
                 <tr v-for="(item, index) in totauxParFamille" :key="item.famille">
                     <td>{{ index + 1 }}</td>
                     <td>{{ item.famille }}</td>
+                    <td>{{ item.count }}</td>
                     <td>{{ item.total }}</td>
                 </tr>
             </tbody>
         </table>
 
-        <!-- Détails groupés par famille -->
+        <!-- Détails -->
         <h3 class="mt-6 font-bold text-primary">Détails des matériels par famille</h3>
         <table class="table table-xs table-zebra mt-2">
             <thead>
@@ -272,11 +313,17 @@ export default {
                     </tr>
                 </template>
                 <tr>
-                    <td colspan="4" class="text-right"><strong>Total général :</strong></td>
+                    <td colspan="4" class="text-right font-bold">Total général :</td>
                     <td><strong>{{ totalMontantCalcule }} DzD</strong></td>
                 </tr>
             </tbody>
         </table>
+
+        <div class="flex justify-end mt-4">
+            <button class="btn btn-primary" @click="telechargerFacture">
+                📄 Télécharger la facture
+            </button>
+        </div>
     </div>
 </template>
 

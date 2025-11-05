@@ -61,7 +61,7 @@ app.get("/materiel", verifyToken, (req, res) => {
   });
 });
 
-app.get("/familles", (req, res) => {
+app.get("/familles", verifyToken, (req, res) => {
   db.query("SELECT * FROM famille ORDER BY id DESC", (err, results) => {
     if (err) {
       console.error("Erreur de requête :", err);
@@ -197,7 +197,7 @@ app.get("/structures", (req, res) => {
   });
 });
 
-app.get("/utilisateurs", (req, res) => {
+app.get("/utilisateurs", verifyToken, (req, res) => {
   db.query("SELECT * FROM utilisateur Order By nom ASC", (err, results) => {
     if (err) {
       console.error("Erreur de requete : get utilisateurs ", err);
@@ -412,7 +412,7 @@ app.post("/api/familles", verifyToken, (req, res) => {
 });
 
 // Route POST pour insérer une famille
-app.post("/api/fournisseurs", (req, res) => {
+app.post("/api/fournisseurs", verifyToken, (req, res) => {
   const { code_frs, libelle, telephone, adresse, email } = req.body;
 
   const sql =
