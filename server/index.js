@@ -26,7 +26,7 @@ function verifyToken(req, res, next) {
 
 app.use(
   cors({
-    origin: "http://localhost:5173", // autorise les requêtes venant de Vite
+    origin: "http://localhost:5174", // autorise les requêtes venant de Vite
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
@@ -189,11 +189,10 @@ app.get("/fournisseurs", verifyToken, (req, res) => {
 app.get("/structures", (req, res) => {
   db.query("SELECT * FROM structure ORDER BY code_str ASC", (err, results) => {
     if (err) {
-      console.error("Erreur de requête :", err);
-      res.status(500).json({ error: "Erreur dans la base de données" });
-    } else {
-      res.json(results);
+      console.error("Erreur SQL /structures :", err.message);
+      return res.status(500).json({ error: err.message });
     }
+    res.json(results);
   });
 });
 
@@ -210,7 +209,7 @@ app.get("/utilisateurs", verifyToken, (req, res) => {
 
 app.get("/affectations", verifyToken, (req, res) => {
   db.query(
-    `SELECT a.*, m.libelle 
+    `SELECT DISTINCT a.*, m.libelle 
      FROM affectation a
      JOIN materiel m ON a.code_mat = m.matricule
      ORDER BY a.code_str ASC`,
@@ -432,6 +431,7 @@ app.post("/api/fournisseurs", verifyToken, (req, res) => {
     }
   );
 });
+
 app.post("/materiel_affectationglobale", verifyToken, (req, res) => {
   const { structure, date } = req.body;
 
@@ -531,8 +531,9 @@ app.post("/transfert", verifyToken, (req, res) => {
 });
 
 app.post("/reintegration", verifyToken, (req, res) => {
-  const { date, structure, structureto, codes_mat } = req.body;
+  const { date, structure, structureto, codes_mat, motif } = req.body;
 
+  // Vérification des champs
   if (!date || !structure || !structureto || !Array.isArray(codes_mat)) {
     return res.status(400).json({ error: "Données invalides" });
   }
@@ -540,7 +541,8 @@ app.post("/reintegration", verifyToken, (req, res) => {
   const type_affectation = "REINTEGRATION";
   const nbr = 1;
 
-  const inserts = codes_mat.map((code_mat) => [
+  // Données pour la table affectation
+  const affectationInserts = codes_mat.map((code_mat) => [
     date,
     code_mat,
     structureto,
@@ -548,7 +550,16 @@ app.post("/reintegration", verifyToken, (req, res) => {
     nbr,
   ]);
 
-  const sql = `
+  // Données pour la table reintegration
+  const reintegrationInserts = codes_mat.map((code_mat) => [
+    date,
+    code_mat,
+    structure,
+    motif || null, // si le motif n’est pas fourni
+  ]);
+
+  // Insertion dans affectation puis reintegration
+  const sqlAffectation = `
     INSERT INTO affectation (
       date,
       code_mat,
@@ -558,19 +569,67 @@ app.post("/reintegration", verifyToken, (req, res) => {
     ) VALUES ?
   `;
 
-  db.query(sql, [inserts], (err, result) => {
+  const sqlReintegration = `
+    INSERT INTO reintegration (
+      date,
+      code_mat,
+      code_str,
+      motif
+    ) VALUES ?
+  `;
+
+  // Commence une transaction pour que les deux insertions soient cohérentes
+  db.beginTransaction((err) => {
     if (err) {
-      console.error("❌ Erreur lors de reintegration :", err);
+      console.error("Erreur transaction :", err);
       return res.status(500).json({ error: "Erreur serveur" });
     }
 
-    console.log(`✅ Reintegration effectué pour ${codes_mat.length} matériels`);
-    return res.status(200).json({
-      message: "Reintegration effectué avec succès",
-      insertCount: result.affectedRows,
+    // 1️⃣ Insertion dans affectation
+    db.query(sqlAffectation, [affectationInserts], (err, result1) => {
+      if (err) {
+        return db.rollback(() => {
+          console.error("Erreur insertion affectation :", err);
+          res
+            .status(500)
+            .json({ error: "Erreur lors de l’insertion dans affectation" });
+        });
+      }
+
+      // 2️⃣ Insertion dans reintegration
+      db.query(sqlReintegration, [reintegrationInserts], (err, result2) => {
+        if (err) {
+          return db.rollback(() => {
+            console.error("Erreur insertion reintegration :", err);
+            res
+              .status(500)
+              .json({ error: "Erreur lors de l’insertion dans reintegration" });
+          });
+        }
+
+        // ✅ Si tout est bon, on valide la transaction
+        db.commit((err) => {
+          if (err) {
+            return db.rollback(() => {
+              console.error("Erreur commit :", err);
+              res.status(500).json({ error: "Erreur lors de la validation" });
+            });
+          }
+
+          console.log(
+            `✅ Réintégration effectuée pour ${codes_mat.length} matériels`
+          );
+          res.status(200).json({
+            message: "Réintégration effectuée avec succès",
+            affectationCount: result1.affectedRows,
+            reintegrationCount: result2.affectedRows,
+          });
+        });
+      });
     });
   });
 });
+
 // Démarrage du serveur
 app.listen(port, () => {
   console.log(`🚀 Serveur démarré sur http://localhost:${port}`);
