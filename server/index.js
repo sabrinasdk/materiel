@@ -26,7 +26,7 @@ function verifyToken(req, res, next) {
 
 app.use(
   cors({
-    origin: "http://localhost:5174", // autorise les requêtes venant de Vite
+    origin: "http://localhost:5173", // autorise les requêtes venant de Vite
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
@@ -70,6 +70,91 @@ app.get("/familles", verifyToken, (req, res) => {
       res.json(results);
     }
   });
+});
+
+app.post("/totaux_structures", verifyToken, async (req, res) => {
+  const { date } = req.body;
+
+  if (!date) {
+    return res.status(400).json({ error: "Le champ 'date' est requis." });
+  }
+
+  try {
+    // 1️⃣ Charger les structures (pour identifier les DG)
+    const [structures] = await db
+      .promise()
+      .query("SELECT code_str, type_str FROM structure");
+
+    // 2️⃣ Récupérer les affectations valides à cette date
+    const [affectations] = await db.promise().query(
+      `
+      SELECT 
+          a.code_str,
+          a.code_mat,
+          m.montant
+      FROM affectation a
+      INNER JOIN (
+          SELECT code_mat, MAX(date) AS max_date
+          FROM affectation
+          GROUP BY code_mat
+      ) last_aff
+          ON a.code_mat = last_aff.code_mat
+         AND a.date = last_aff.max_date
+      INNER JOIN materiel m
+          ON a.code_mat = m.matricule
+      WHERE a.date <= ?
+        AND (
+            NOT EXISTS (
+                SELECT 1 FROM reintegration r
+                WHERE r.code_mat = a.code_mat
+                  AND r.date <= ?
+            )
+            OR a.date > (
+                SELECT IFNULL(MAX(r.date), '0000-00-00')
+                FROM reintegration r
+                WHERE r.code_mat = a.code_mat
+            )
+        )
+      `,
+      [date, date]
+    );
+
+    // 3️⃣ Calculer les totaux par structure
+    const totaux = {};
+
+    for (const aff of affectations) {
+      const montant = parseFloat(aff.montant) || 0;
+      const montantCalcule = (montant / 5 + montant * 0.3 + montant * 0.1) / 12;
+
+      // Type de structure
+      const str = structures.find((s) => s.code_str === aff.code_str);
+      const typeStr = str ? str.type_str : null;
+
+      // Regroupement DG ≠ DINF dans F00
+      let key;
+      if (typeStr === "DG" && aff.code_str !== "DINF") {
+        key = "F00";
+      } else {
+        key = aff.code_str;
+      }
+
+      if (!totaux[key]) totaux[key] = 0;
+      totaux[key] += montantCalcule;
+    }
+
+    // 4️⃣ Transformer en tableau trié
+    const resultat = Object.keys(totaux)
+      .map((k) => ({
+        structure: k,
+        total: parseFloat(totaux[k].toFixed(2)),
+      }))
+      .sort((a, b) => a.structure.localeCompare(b.structure));
+
+    res.status(200).json(resultat);
+  } catch (err) {
+    console.error("💥 Erreur calcul totaux F00 :", err);
+    res.status(500).json({ error: "Erreur serveur lors du calcul F00" });
+  }
 });
 
 // ✅ Route d'affectation de matériel (sans .promise)

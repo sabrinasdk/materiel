@@ -4,9 +4,8 @@ import axios from 'axios'
 
 export default {
     name: 'PageAffectations',
-    components: {
-        AffectationAdd
-    },
+    components: { AffectationAdd },
+
     data() {
         return {
             title: 'Page Affectations',
@@ -21,14 +20,15 @@ export default {
                 code_str: '',
                 matricule_utl: '',
                 type_affectation: '',
+                date_affectation: '',
+                montant: ''
             }
         };
     },
+
     methods: {
         goToPage(page) {
-            if (page >= 1 && page <= this.totalPages) {
-                this.currentPage = page;
-            }
+            if (page >= 1 && page <= this.totalPages) this.currentPage = page;
         },
         nextPage() {
             if (this.currentPage < this.totalPages) this.currentPage++;
@@ -48,46 +48,81 @@ export default {
                 .catch(err => console.error('Erreur lors de la récupération des affectations :', err))
                 .finally(() => (this.isLoading = false));
         },
-        normalize(value) {
-            if (!value) return '';
-            return value
-                .toString()
+
+        normalize(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
                 .normalize('NFD')
                 .replace(/[\u0300-\u036f]/g, '')
                 .toLowerCase()
                 .trim();
         }
     },
+
     computed: {
         filteredAffectations() {
             return this.affectations.filter(item => {
                 const norm = this.normalize;
-                return (
-                    (!this.filters.code_mat || norm(item.code_mat).includes(norm(this.filters.code_mat))) &&
-                    (!this.filters.libelle || norm(item.libelle).includes(norm(this.filters.libelle))) &&
-                    (!this.filters.code_str || norm(item.code_str).includes(norm(this.filters.code_str))) &&
-                    (!this.filters.matricule_utl || norm(item.matricule_utl).includes(norm(this.filters.matricule_utl))) &&
-                    (!this.filters.type_affectation || norm(item.type_affectation).includes(norm(this.filters.type_affectation)))
-                );
+
+                // Fonction de comparaison : partielle au début, exacte si correspondance totale
+                const checkField = (field, filterValue) => {
+                    if (!filterValue) return true;
+                    const f = norm(filterValue);
+                    const v = norm(field);
+                    return v === f || v.includes(f);
+                };
+
+                // Filtres texte
+                if (!checkField(item.code_mat, this.filters.code_mat)) return false;
+                if (!checkField(item.libelle, this.filters.libelle)) return false;
+                if (!checkField(item.code_str, this.filters.code_str)) return false;
+                if (!checkField(item.matricule_utl, this.filters.matricule_utl)) return false;
+                if (!checkField(item.type_affectation, this.filters.type_affectation)) return false;
+
+                // Date d’affectation (exacte)
+                if (this.filters.date_affectation) {
+                    const itemDate = item.date_affectation ? item.date_affectation.toString().slice(0, 10) : '';
+                    if (itemDate !== this.filters.date_affectation) return false;
+                }
+
+                // Montant (intervalle ou partiel)
+                if (this.filters.montant) {
+                    const f = String(this.filters.montant).trim();
+                    if (f.includes('-')) {
+                        const [minS, maxS] = f.split('-').map(s => s.trim());
+                        const min = parseFloat(minS) || -Infinity;
+                        const max = parseFloat(maxS) || Infinity;
+                        const m = parseFloat(String(item.montant).replace(',', '.')) || 0;
+                        if (m < min || m > max) return false;
+                    } else {
+                        if (!String(item.montant ?? '').toLowerCase().includes(f.toLowerCase())) return false;
+                    }
+                }
+
+                return true;
             });
         },
+
         paginatedAffectations() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
             return this.filteredAffectations.slice(start, start + this.itemsPerPage);
         },
+
         totalPages() {
             return Math.ceil(this.filteredAffectations.length / this.itemsPerPage) || 1;
         }
     },
+
     watch: {
         itemsPerPage() {
             this.currentPage = 1;
         }
     },
+
     mounted() {
         this.fetchAffectations();
         this.fetchMateriels();
-    },
+    }
 };
 </script>
 
@@ -144,7 +179,6 @@ export default {
                                     class="input input-xs w-full" /></th>
                             <th><input v-model="filters.type_affectation" placeholder="Type"
                                     class="input input-xs w-full" /></th>
-
                         </tr>
                         <tr class="font-semibold">
                             <th>#</th>
@@ -153,7 +187,6 @@ export default {
                             <th>Structure</th>
                             <th>Utilisateur</th>
                             <th>Type</th>
-
                         </tr>
                     </thead>
                     <tbody>
@@ -165,7 +198,6 @@ export default {
                             <td>{{ item.code_str }}</td>
                             <td>{{ item.matricule_utl }}</td>
                             <td>{{ item.type_affectation }}</td>
-
                         </tr>
                         <tr v-if="filteredAffectations.length === 0">
                             <td colspan="7" class="text-center py-4 text-gray-500 italic">Aucune affectation trouvée

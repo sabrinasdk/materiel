@@ -128,7 +128,7 @@ export default {
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 bg-gray-50 p-4 rounded-lg shadow-sm">
             <div>
                 <label class="label-text font-medium">Date</label>
-                <input type="date" class="input input-bordered w-full" v-model="mois" />
+                <input type="date" class="input input-bordered w-full" v-model="date" />
             </div>
 
             <div>

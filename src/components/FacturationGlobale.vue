@@ -15,7 +15,7 @@ export default {
             mois: '2025-06',
             dateComplete: '',
             structures: [],
-            loading: false, // ✅ ajout pour loading
+            loading: false,
             filters: {
                 code_mat: '',
                 libelle: '',
@@ -25,96 +25,101 @@ export default {
             }
         };
     },
+
     methods: {
-        goToPage(page) {
-            if (page >= 1 && page <= this.totalPages) {
-                this.currentPage = page;
+        // ✅ Parse montant (robuste)
+        parseMontant(raw) {
+            if (raw == null) return 0;
+            const sanitized = String(raw).replace(/[^\d,.\-]/g, '').trim();
+            if (!sanitized) return 0;
+            const lastComma = sanitized.lastIndexOf(',');
+            const lastDot = sanitized.lastIndexOf('.');
+            let normalized = sanitized;
+            if (lastComma > lastDot) {
+                normalized = sanitized.replace(/\./g, '').replace(',', '.');
+            } else {
+                normalized = sanitized.replace(/,/g, '');
             }
+            const val = parseFloat(normalized);
+            return isNaN(val) ? 0 : val;
+        },
+
+        goToPage(page) {
+            if (page >= 1 && page <= this.totalPages) this.currentPage = page;
         },
         nextPage() {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++;
-            }
+            if (this.currentPage < this.totalPages) this.currentPage++;
         },
         prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-            }
+            if (this.currentPage > 1) this.currentPage--;
         },
+
         getStructures() {
             axios.get('http://localhost:3000/structures')
                 .then(response => {
-                    this.structures = response.data;
+                    this.structures = response.data.filter(s => s.cloture !== 'oui');
+                    // 🔹 Ajout structure F00 si absente
+                    if (!this.structures.some(s => s.code_str === 'F00')) {
+                        this.structures.push({
+                            code_str: 'F00',
+                            libelle: 'Direction Générale (toutes structures DG sauf DINF)',
+                            type_str: 'DG'
+                        });
+                    }
                 })
-                .catch(error => {
-                    console.error('Erreur lors de la récupération des structures :', error);
-                });
+                .catch(error => console.error('Erreur structures :', error));
         },
 
         async getMateriels() {
             try {
-                this.loading = true; // ✅ affiche loading
+                this.loading = true;
                 this.dateComplete = this.getDernierJourDuMois(this.mois);
 
                 const response = await axios.post('http://localhost:3000/materiel_affectationglobale', {
                     date: this.dateComplete,
                     structure: null
                 });
+
                 this.affectations = response.data;
             } catch (err) {
-                console.error('Erreur lors de la récupération des affectations :', err);
+                console.error('Erreur getMateriels :', err);
             } finally {
-                this.loading = false; // ✅ désactive loading
+                this.loading = false;
             }
         },
 
         getDernierJourDuMois(mois) {
             const [annee, moisStr] = mois.split("-");
-            const anneeNum = parseInt(annee, 10);
-            const moisNum = parseInt(moisStr, 10);
-            const dernierJour = new Date(anneeNum, moisNum, 0);
-
-            const yyyy = dernierJour.getFullYear();
-            const mm = String(dernierJour.getMonth() + 1).padStart(2, "0");
-            const dd = String(dernierJour.getDate()).padStart(2, "0");
-
-            return `${yyyy}-${mm}-${dd}`;
+            const dernierJour = new Date(parseInt(annee), parseInt(moisStr), 0);
+            return `${dernierJour.getFullYear()}-${String(dernierJour.getMonth() + 1).padStart(2, "0")}-${String(dernierJour.getDate()).padStart(2, "0")}`;
         },
-        telechargerTxt() {
-            const lignes = [''];
 
+        telechargerTxt() {
+            const lignes = ['Structure  |  Total (DzD)'];
             this.totauxParStructure.forEach(item => {
                 lignes.push(`${item.structure}  ${item.total}`);
             });
-
-            const contenu = lignes.join('\n');
-            const blob = new Blob([contenu], { type: 'text/plain;charset=utf-8' });
-
+            const blob = new Blob([lignes.join('\n')], { type: 'text/plain;charset=utf-8' });
             const lien = document.createElement('a');
             lien.href = URL.createObjectURL(blob);
             lien.download = `Facturation_${this.mois}.txt`;
             lien.click();
             URL.revokeObjectURL(lien.href);
         },
+
         telechargerPdf() {
             const doc = new jsPDF();
-
             doc.setFontSize(16);
             doc.text('Facturation par Structure', 14, 15);
 
-            const data = this.totauxParStructure.map(item => [
-                item.structure,
-                `${item.total} DzD`
-            ]);
+            const data = this.totauxParStructure.map(item => [item.structure, `${item.total} DzD`]);
 
             autoTable(doc, {
-                head: [['Structure', 'Total']],
+                head: [['Structure', 'Total (DzD)']],
                 body: data,
                 startY: 25,
                 theme: 'striped',
-                styles: {
-                    fontSize: 10,
-                }
+                styles: { fontSize: 10 },
             });
 
             doc.save(`totaux_structures_${this.mois}.pdf`);
@@ -123,59 +128,68 @@ export default {
 
     computed: {
         filteredAffectations() {
-            return this.affectations.filter(item => {
-                return Object.keys(this.filters).every(key => {
+            return this.affectations.filter(item =>
+                Object.keys(this.filters).every(key => {
                     const filterValue = this.filters[key]?.toString().toLowerCase();
                     const itemValue = item[key]?.toString().toLowerCase();
                     return filterValue === '' || itemValue.includes(filterValue);
-                });
-            });
+                })
+            );
         },
+
+        // ✅ Version corrigée de totauxParStructure (harmonisée)
         totauxParStructure() {
+
             const result = {};
 
+            const allStructures = Array.isArray(this.structures) ? this.structures : [];
+
+            const getTypeStr = codeStr => {
+                const s = allStructures.find(x => x.code_str === codeStr);
+                return s ? s.type_str : null;
+            };
+
             this.filteredAffectations.forEach(item => {
-                const montant = parseFloat(item.montant.replace(',', '.')) || 0;
+                const montant = this.parseMontant(item.montant);
                 const montantCalcule = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
+                const codeStr = item.code_str || item.structure || '';
+                const typeStr = getTypeStr(codeStr);
 
-                const codeStr = item.code_str;
-                const structureInfo = this.structures.find(s => s.code_str === codeStr);
-                const typeStr = structureInfo ? structureInfo.type_str : null;
-
-                const structureKey = (typeStr === 'DG') ? 'F00' : codeStr;
-
-                if (!result[structureKey]) {
-                    result[structureKey] = 0;
+                let structureKey;
+                if (typeStr === 'DG' && codeStr !== 'DINF') {
+                    structureKey = 'F00';
+                } else {
+                    structureKey = codeStr || 'UNKNOWN';
                 }
 
+                if (!result[structureKey]) result[structureKey] = 0;
                 result[structureKey] += montantCalcule;
             });
 
-            const structuresAGarder = this.structures
-                .filter(s => s.type_str !== 'DG')
+            const structuresAGarder = allStructures
+                .filter(s => s.type_str !== 'DG' || s.code_str === 'DINF')
                 .map(s => s.code_str);
-
             structuresAGarder.push('F00');
 
-            return Object.entries(result)
-                .filter(([structure]) => structuresAGarder.includes(structure))
-                .map(([structure, total]) => ({
-                    structure: structure === 'F00' ? 'F00' : structure,
-                    total: parseFloat(total.toFixed(2))
-                }))
-                .sort((a, b) => a.structure.localeCompare(b.structure));
+            return structuresAGarder.map(code => ({
+                structure: code,
+                total: parseFloat((result[code] || 0).toFixed(2))
+            })).sort((a, b) => a.structure.localeCompare(b.structure));
         },
+
         totalMontantCalcule() {
             return this.filteredAffectations.reduce((total, item) => {
-                let montant = parseFloat(item.montant.replace(',', '.')) || 0;
-                let result = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
+                const montant = this.parseMontant(item.montant);
+                const result = ((montant / 5) + (montant * 0.3) + (montant * 0.10)) / 12;
                 return total + result;
             }, 0).toFixed(2);
         },
+
         paginatedTotauxParStructure() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
             return this.totauxParStructure.slice(start, start + this.itemsPerPage);
         },
+
         totalPages() {
             return Math.ceil(this.totauxParStructure.length / this.itemsPerPage);
         }
@@ -186,11 +200,10 @@ export default {
             this.currentPage = 1;
         },
         mois(newVal) {
-            if (newVal) {
-                this.getMateriels();
-            }
+            if (newVal) this.getMateriels();
         }
     },
+
     mounted() {
         this.getStructures();
         this.getMateriels();
@@ -200,14 +213,12 @@ export default {
 
 <template>
     <div class="mx-auto px-4">
-        <!-- ✅ Bouton principal -->
         <button class="btn btn-blue w-full mt-4 rounded-lg shadow-lg hover:bg-blue-200">
             💻 Facturation Équipement Informatique Globale
         </button>
 
         <h5 class="text-lg font-semibold text-blue-600 mt-6">📅 Veuillez sélectionner le mois</h5>
 
-        <!-- ✅ Input stylisé -->
         <div class="grid grid-cols-2 gap-4 max-w-xl mt-3">
             <div class="form-control">
                 <label for="mois" class="label text-gray-700 font-medium">Mois</label>
@@ -217,19 +228,16 @@ export default {
             </div>
         </div>
 
-        <!-- ✅ Loader -->
         <div v-if="loading" class="flex items-center justify-center h-40">
             <span class="loading loading-spinner loading-lg text-blue-500"></span>
         </div>
 
-        <!-- ✅ Table affichée quand pas loading -->
         <div v-else class="overflow-x-auto mt-8">
             <label for="perPage" class="font-semibold">Lignes par page :</label>
             <select id="perPage" v-model.number="itemsPerPage"
                 class="select select-bordered border-blue-400 focus:ring-blue-300 focus:ring-2 rounded-lg shadow-sm ml-2">
                 <option :value="20">20</option>
                 <option :value="50">50</option>
-                <option :value="70">70</option>
                 <option :value="100">100</option>
                 <option :value="150">150</option>
                 <option :value="200">200</option>
@@ -259,7 +267,6 @@ export default {
                 <button class="btn btn-outline btn-secondary" @click="telechargerTxt">
                     📄 Télécharger (.txt)
                 </button>
-
                 <button class="btn btn-accent" @click="telechargerPdf">
                     📘 Télécharger (.pdf)
                 </button>
