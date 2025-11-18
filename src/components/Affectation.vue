@@ -36,16 +36,25 @@ export default {
         prevPage() {
             if (this.currentPage > 1) this.currentPage--;
         },
+
         fetchMateriels() {
             axios.get('http://localhost:3000/materiel')
                 .then(res => (this.materiels = res.data))
-                .catch(err => console.error('Erreur lors de la récupération des matériels :', err));
+                .catch(err => console.error('Erreur materiels :', err));
         },
+
+        // 🔥 TRI DÉCROISSANT PAR DATE D’AFFECTATION
         fetchAffectations() {
             this.isLoading = true;
             axios.get('http://localhost:3000/affectations')
-                .then(res => (this.affectations = res.data))
-                .catch(err => console.error('Erreur lors de la récupération des affectations :', err))
+                .then(res => {
+                    this.affectations = res.data.sort((a, b) => {
+                        const da = a.date_affectation ? new Date(a.date_affectation) : 0;
+                        const db = b.date_affectation ? new Date(b.date_affectation) : 0;
+                        return db - da; // 🔥 tri décroissant
+                    });
+                })
+                .catch(err => console.error('Erreur affectations :', err))
                 .finally(() => (this.isLoading = false));
         },
 
@@ -61,10 +70,9 @@ export default {
 
     computed: {
         filteredAffectations() {
-            return this.affectations.filter(item => {
+            const data = this.affectations.filter(item => {
                 const norm = this.normalize;
 
-                // Fonction de comparaison : partielle au début, exacte si correspondance totale
                 const checkField = (field, filterValue) => {
                     if (!filterValue) return true;
                     const f = norm(filterValue);
@@ -72,20 +80,17 @@ export default {
                     return v === f || v.includes(f);
                 };
 
-                // Filtres texte
                 if (!checkField(item.code_mat, this.filters.code_mat)) return false;
                 if (!checkField(item.libelle, this.filters.libelle)) return false;
                 if (!checkField(item.code_str, this.filters.code_str)) return false;
                 if (!checkField(item.matricule_utl, this.filters.matricule_utl)) return false;
                 if (!checkField(item.type_affectation, this.filters.type_affectation)) return false;
 
-                // Date d’affectation (exacte)
                 if (this.filters.date_affectation) {
                     const itemDate = item.date_affectation ? item.date_affectation.toString().slice(0, 10) : '';
                     if (itemDate !== this.filters.date_affectation) return false;
                 }
 
-                // Montant (intervalle ou partiel)
                 if (this.filters.montant) {
                     const f = String(this.filters.montant).trim();
                     if (f.includes('-')) {
@@ -101,7 +106,15 @@ export default {
 
                 return true;
             });
+
+            // 🔥 TRI DÉCROISSANT PAR DATE DANS LE COMPUTED
+            return data.sort((a, b) => {
+                const da = a.date_affectation ? new Date(a.date_affectation) : 0;
+                const db = b.date_affectation ? new Date(b.date_affectation) : 0;
+                return db - da;
+            });
         },
+
 
         paginatedAffectations() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -128,7 +141,6 @@ export default {
 
 <template>
     <div class="min-h-screen bg-gray-50 p-6">
-        <!-- En-tête -->
         <div class="flex flex-col items-center mb-6 space-y-3">
             <h2 class="text-2xl font-bold text-blue-800 mt-5">🔗 Affectations de Matériels</h2>
             <button class="btn bg-blue-600 text-white hover:bg-blue-700 border-none rounded-md shadow-md px-6"
@@ -139,17 +151,15 @@ export default {
 
         <AffectationAdd @materiel-ajoute="fetchAffectations" />
 
-        <!-- Loader -->
         <div v-if="isLoading" class="flex justify-center items-center min-h-[200px]">
             <span class="loading loading-spinner text-primary loading-lg"></span>
         </div>
 
-        <!-- Tableau -->
         <div v-else class="bg-white p-4 rounded-2xl shadow-md">
-            <!-- Sélecteur de lignes -->
+
             <div class="flex justify-between items-center mb-3">
                 <div>
-                    <label for="perPage" class="text-gray-600 text-sm font-medium">Lignes par page :</label>
+                    <label for="perPage" class="text-gray-600 text-sm font-medium">Lignes :</label>
                     <select id="perPage" v-model.number="itemsPerPage"
                         class="ml-2 border border-gray-300 rounded-md p-1">
                         <option :value="20">20</option>
@@ -175,20 +185,24 @@ export default {
                             </th>
                             <th><input v-model="filters.code_str" placeholder="Structure"
                                     class="input input-xs w-full" /></th>
+                            <th></th>
                             <th><input v-model="filters.matricule_utl" placeholder="Utilisateur"
                                     class="input input-xs w-full" /></th>
                             <th><input v-model="filters.type_affectation" placeholder="Type"
                                     class="input input-xs w-full" /></th>
                         </tr>
+
                         <tr class="font-semibold">
                             <th>#</th>
                             <th>Matricule</th>
                             <th>Libellé</th>
                             <th>Structure</th>
+                            <th>Date</th>
                             <th>Utilisateur</th>
                             <th>Type</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         <tr v-for="(item, index) in paginatedAffectations" :key="item.code_mat"
                             class="hover:bg-blue-50">
@@ -196,25 +210,26 @@ export default {
                             <td>{{ item.code_mat }}</td>
                             <td>{{ item.libelle }}</td>
                             <td>{{ item.code_str }}</td>
+                            <td>{{ item.date }}</td>
                             <td>{{ item.matricule_utl }}</td>
                             <td>{{ item.type_affectation }}</td>
                         </tr>
+
                         <tr v-if="filteredAffectations.length === 0">
-                            <td colspan="7" class="text-center py-4 text-gray-500 italic">Aucune affectation trouvée
+                            <td colspan="7" class="text-center py-4 text-gray-500 italic">
+                                Aucune affectation trouvée.
                             </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Pagination -->
             <div class="flex justify-center items-center mt-4 space-x-2">
                 <button class="btn btn-sm" @click="prevPage" :disabled="currentPage === 1">← Précédent</button>
-                <span class="text-gray-700 text-sm">
-                    Page {{ currentPage }} / {{ totalPages }}
-                </span>
+                <span class="text-gray-700 text-sm">Page {{ currentPage }} / {{ totalPages }}</span>
                 <button class="btn btn-sm" @click="nextPage" :disabled="currentPage === totalPages">Suivant →</button>
             </div>
+
         </div>
     </div>
 </template>

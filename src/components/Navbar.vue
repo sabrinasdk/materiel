@@ -41,6 +41,9 @@
                             </li>
                             <li><a href="/reintegration" class="block px-4 py-2 hover:bg-blue-100">Réintégration</a>
                             </li>
+                            <li><a href="/p_reforme" class="block px-4 py-2 hover:bg-blue-100">Proposé à la réforme</a>
+                            </li>
+
                         </ul>
                     </details>
                 </li>
