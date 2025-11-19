@@ -309,6 +309,25 @@ app.get("/affectations", verifyToken, (req, res) => {
   );
 });
 
+app.post("/materiel/reforme", (req, res) => {
+  const { codes } = req.body;
+
+  if (!codes || !Array.isArray(codes)) {
+    return res.status(400).json({ error: "Liste invalide" });
+  }
+
+  const sql = `
+        UPDATE materiel
+        SET etat = 'Réforme'
+        WHERE code_mat IN (?)
+    `;
+
+  db.query(sql, [codes], (err) => {
+    if (err) return res.status(500).json({ error: "Erreur SQL" });
+    res.json({ success: true });
+  });
+});
+
 app.post("/login", (req, res) => {
   const { nom, motdepasse } = req.body;
 

@@ -11,6 +11,7 @@ import LoginForm from "@components/Login.vue";
 import PageFacturationGlobaleMateriels from "@components/FacturationGlobale.vue";
 import PageUtilisateurs from "@components/Utilisateurs.vue";
 import HomePage from "@components/Home.vue"; // ← ajoute ton composant d’accueil
+import PagePreformeMateriels from "@components/Preforme.vue";
 
 const routes = [
   { path: "/login", name: "LoginForm", component: LoginForm },
@@ -73,6 +74,12 @@ const routes = [
     path: "/reintegration",
     name: "PageReintegrationMateriels",
     component: PageReintegrationMateriels,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/preforme",
+    name: "PagePreformeMateriels",
+    component: PagePreformeMateriels,
     meta: { requiresAuth: true },
   },
   {
