@@ -11,7 +11,9 @@ export default {
                 nombre: 0
             },
             structures: [],
-            materiels: []
+            materiels: [],
+            showSuccess: false
+
         };
     },
     mounted() {
@@ -36,21 +38,26 @@ export default {
             }
         },
         async submitForm() {
-            console.log("Form envoyé :", this.form);
-
             try {
                 const response = await axios.post(
                     'http://localhost:3000/affectation_materiel',
                     this.form
                 );
-                console.log('Success:', response.data);
-                alert('Affectation enregistrée avec succès !');
+
+                // notification
+                this.showSuccess = true;
+                setTimeout(() => {
+                    this.showSuccess = false;
+                }, 2500);
+
                 this.$emit('affectation-ajoute');
+
             } catch (error) {
                 console.error('Erreur lors de l’envoi du formulaire :', error);
-                alert('Erreur lors de l’enregistrement de l’affectation.');
+                alert('Erreur lors de l’enregistrement.');
             }
         }
+
     }
 };
 </script>
@@ -132,6 +139,14 @@ export default {
                 <button type="button" @click="submitForm" class="btn bg-amber-500 text-white">
                     ✅ Envoyer
                 </button>
+            </div>
+            <!-- Toast notification -->
+
+
+        </div>
+        <div v-if="showSuccess" class="toast toast-end">
+            <div class="alert alert-success">
+                <span>✔️ Affectation enregistrée avec succès !</span>
             </div>
         </div>
     </dialog>
