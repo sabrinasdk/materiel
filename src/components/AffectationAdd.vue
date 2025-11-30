@@ -50,13 +50,17 @@ export default {
                     this.showSuccess = false;
                 }, 2500);
 
+                // réinitialisation du formulaire
+                this.resetForm();
+
                 this.$emit('affectation-ajoute');
 
             } catch (error) {
                 console.error('Erreur lors de l’envoi du formulaire :', error);
                 alert('Erreur lors de l’enregistrement.');
             }
-        }
+        },
+        resetForm() { this.form = { structure: '', date: '', utilisateur: '', nombre: 0 }; }
 
     }
 };
