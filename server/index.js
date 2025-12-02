@@ -293,20 +293,26 @@ app.get("/utilisateurs", verifyToken, (req, res) => {
 });
 
 app.get("/affectations", verifyToken, (req, res) => {
-  db.query(
-    `SELECT DISTINCT a.*, m.libelle 
-     FROM affectation a
-     JOIN materiel m ON a.code_mat = m.matricule
-     ORDER BY a.code_str ASC`,
-    (err, results) => {
-      if (err) {
-        console.error("Erreur de requête :", err);
-        res.status(500).json({ error: "Erreur dans la base de données" });
-      } else {
-        res.json(results);
-      }
+  const sql = `
+    SELECT 
+      a.*,
+      m.libelle,
+      u.nom AS utilisateur_nom,
+      u.fonction AS utilisateur_fonction
+    FROM affectation a
+    JOIN materiel m ON a.code_mat = m.matricule
+    LEFT JOIN utilisateur u ON a.matricule_utl = u.matricule_utl
+   ORDER BY a.date DESC
+
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Erreur de requête :", err);
+      return res.status(500).json({ error: "Erreur dans la base de données" });
     }
-  );
+    res.json(results);
+  });
 });
 
 app.post("/materiel/reforme", (req, res) => {
@@ -315,12 +321,12 @@ app.post("/materiel/reforme", (req, res) => {
   if (!codes || !Array.isArray(codes)) {
     return res.status(400).json({ error: "Liste invalide" });
   }
-
+  const placeholders = codes.map(() => "?").join(", ");
   const sql = `
-        UPDATE materiel
-        SET etat = 'Réforme'
-        WHERE code_mat IN (?)
-    `;
+    UPDATE materiel
+    SET etat = 'Réforme'
+    WHERE matricule IN (${placeholders})
+`;
 
   db.query(sql, [codes], (err) => {
     if (err) return res.status(500).json({ error: "Erreur SQL" });

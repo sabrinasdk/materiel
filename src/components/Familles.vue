@@ -33,6 +33,13 @@ export default {
             axios.get('http://localhost:3000/familles')
                 .then(response => (this.familles = response.data))
                 .catch(error => console.error('Erreur lors de la récupération des familles :', error));
+        },
+        fixEncoding(str) {
+            try {
+                return decodeURIComponent(escape(str));
+            } catch {
+                return str;
+            }
         }
     },
     computed: {
@@ -118,7 +125,7 @@ export default {
                     <tr v-for="(item, index) in paginatedFamilles" :key="item.code_fam">
                         <td>{{ index + 1 + (currentPage - 1) * itemsPerPage }}</td>
                         <td>{{ item.code_fam }}</td>
-                        <td>{{ item.libelle }}</td>
+                        <td>{{ fixEncoding(item.libelle) }}</td>
                     </tr>
 
                     <tr v-if="paginatedFamilles.length === 0">

@@ -119,7 +119,7 @@ export default {
                         <th>Type</th>
                         <th>Projet</th>
                         <th>Date Création</th>
-                        <th>Date Clôture</th>
+                        <th>Clôture</th>
                     </tr>
                 </thead>
 
@@ -130,8 +130,10 @@ export default {
                         <td>{{ item.libelle }}</td>
                         <td>{{ item.type_str }}</td>
                         <td>{{ item.projet }}</td>
-                        <td>{{ item.date_creation }}</td>
-                        <td>{{ item.date_cloture }}</td>
+
+                        <td>{{ new Date(item.date_creation).toLocaleDateString('fr-FR') }}</td>
+
+                        <td>{{ item.cloture }}</td>
                     </tr>
 
                     <tr v-if="paginatedStructures.length === 0">

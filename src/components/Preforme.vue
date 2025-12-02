@@ -96,6 +96,13 @@ export default {
                     console.error("Erreur réforme :", err);
                     alert("Erreur lors de la réforme.");
                 });
+        },
+        fixEncoding(str) {
+            try {
+                return decodeURIComponent(escape(str));
+            } catch {
+                return str;
+            }
         }
     },
 
@@ -153,6 +160,8 @@ export default {
         totalPages() {
             return Math.ceil(this.filteredAffectations.length / this.itemsPerPage) || 1;
         }
+
+
     },
 
     watch: {
@@ -272,10 +281,10 @@ export default {
 
                             <td>{{ index + 1 }}</td>
                             <td>{{ item.code_mat }}</td>
-                            <td>{{ item.libelle }}</td>
-                            <td>{{ item.code_str }}</td>
-                            <td>{{ item.date }}</td>
-                            <td>{{ item.matricule_utl }}</td>
+                            <td>{{ fixEncoding(item.libelle) }}</td>
+                            <td>{{ fixEncoding(item.code_str) }}</td>
+                            <td>{{ new Date(item.date).toLocaleDateString('fr-FR') }}</td>
+                            <td>{{ item.utilisateur_nom }}</td>
                             <td>{{ item.type_affectation }}</td>
                         </tr>
 

@@ -14,6 +14,7 @@ export default {
             currentPage: 1,
             itemsPerPage: 50,
             isLoading: true,
+            // état des filtres
             filters: {
                 code_mat: '',
                 libelle: '',
@@ -22,7 +23,9 @@ export default {
                 type_affectation: '',
                 date_affectation: '',
                 montant: ''
-            }
+            },
+            // <-- état réactif des accordéons (clé = nom structure)
+            expanded: {}
         };
     },
 
@@ -41,7 +44,7 @@ export default {
             this.isLoading = true;
             axios.get('http://localhost:3000/affectations')
                 .then(res => {
-                    // Tri décroissant par date
+                    // Tri décroissant par date_affectation
                     this.affectations = res.data.sort((a, b) => {
                         const da = a.date_affectation ? new Date(a.date_affectation) : 0;
                         const db = b.date_affectation ? new Date(b.date_affectation) : 0;
@@ -55,6 +58,32 @@ export default {
         normalize(str) {
             if (!str) return '';
             return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        },
+        fixEncoding(str) {
+            try { return decodeURIComponent(escape(str)); } catch { return str; }
+        },
+
+        // -------- Accordéon helpers ----------
+        toggleGroup(structure) {
+            // si la clé n'existe pas encore dans expanded, l'initialiser de façon réactive
+            if (!(structure in this.expanded)) {
+                // Vue 2 : utiliser this.$set si disponible
+                if (typeof this.$set === 'function') {
+                    this.$set(this.expanded, structure, true);
+                } else {
+                    // Vue 3 : l'objet expanded déclaré dans data est déjà réactif,
+                    // donc l'affectation directe fonctionne.
+                    this.expanded[structure] = true;
+                }
+                return;
+            }
+
+            // sinon inverser l'état
+            this.expanded[structure] = !this.expanded[structure];
+        },
+
+        isExpanded(structure) {
+            return !!this.expanded[structure];
         }
     },
 
@@ -86,15 +115,43 @@ export default {
             });
         },
 
-        paginatedAffectations() {
-            const start = (this.currentPage - 1) * this.itemsPerPage;
-            return this.filteredAffectations.slice(start, start + this.itemsPerPage);
+        groupedAffectations() {
+            const filtered = this.filteredAffectations;
+            const groupsMap = {};
+
+            filtered.forEach(item => {
+                const str = item.code_str || 'Non définie';
+                if (!groupsMap[str]) groupsMap[str] = { structure: str, items: [] };
+                groupsMap[str].items.push(item);
+            });
+
+            // 👉 Tri à l'intérieur de chaque structure par famille matériel
+            Object.values(groupsMap).forEach(group => {
+                group.items.sort((a, b) => {
+                    const famA = a.code_mat?.split('/')[0] || '';
+                    const famB = b.code_mat?.split('/')[0] || '';
+
+                    // 1) tri par famille (L01 < L02 < L40)
+                    if (famA < famB) return -1;
+                    if (famA > famB) return 1;
+
+                    // 2) si même famille, tri par code complet
+                    return (a.code_mat || '').localeCompare(b.code_mat || '');
+                });
+            });
+
+            return Object.values(groupsMap);
         },
+
 
         totalPages() { return Math.ceil(this.filteredAffectations.length / this.itemsPerPage) || 1; }
     },
 
-    watch: { itemsPerPage() { this.currentPage = 1; } },
+    watch: {
+        itemsPerPage() { this.currentPage = 1; },
+        // si tu veux auto-initialiser l'état expanded quand filtered change, tu peux le faire ici :
+        // filteredAffectations() { /* optional: reset expanded or keep as is */ }
+    },
 
     mounted() { this.fetchAffectations(); this.fetchMateriels(); }
 };
@@ -102,6 +159,7 @@ export default {
 
 <template>
     <div class="min-h-screen bg-gray-50 p-6">
+
         <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-3 md:space-y-0">
             <h2 class="text-3xl font-bold text-blue-800">🔗 {{ title }}</h2>
@@ -119,67 +177,76 @@ export default {
             <span class="loading loading-spinner text-primary loading-lg"></span>
         </div>
 
-        <!-- Table -->
-        <div v-else class="bg-white rounded-2xl shadow-md overflow-x-auto">
-            <!-- Table top bar -->
-            <div
-                class="flex flex-col md:flex-row justify-between items-center p-4 border-b border-gray-200 space-y-2 md:space-y-0">
-                <div class="flex items-center space-x-2">
-                    <label class="text-gray-600 text-sm font-medium">Lignes :</label>
-                    <select v-model.number="itemsPerPage" class="border rounded px-2 py-1">
-                        <option v-for="n in [20, 50, 100, 150, 200]" :key="n" :value="n">{{ n }}</option>
-                    </select>
+        <!-- Accordéons par structure -->
+        <div v-else>
+            <div class="mb-4 border rounded-lg shadow-sm p-4">
+
+                <!-- Top bar -->
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 space-y-2 md:space-y-0">
+                    <div class="flex items-center space-x-2">
+                        <label class="text-gray-600 text-sm font-medium">Lignes :</label>
+                        <select v-model.number="itemsPerPage" class="border rounded px-2 py-1">
+                            <option v-for="n in [20, 50, 100, 150, 200]" :key="n" :value="n">{{ n }}</option>
+                        </select>
+                    </div>
+                    <p class="text-sm text-gray-500">{{ filteredAffectations.length }} résultat(s)</p>
                 </div>
-                <p class="text-sm text-gray-500">{{ filteredAffectations.length }} résultat(s)</p>
-            </div>
 
-            <!-- Table -->
-            <table class="table-auto w-full text-sm">
-                <thead class="bg-blue-100 text-blue-800 sticky top-0">
-                    <tr>
-                        <th>#</th>
-                        <th><input v-model="filters.code_mat" placeholder="Code Mat" class="input input-xs w-full" />
-                        </th>
-                        <th><input v-model="filters.libelle" placeholder="Libellé" class="input input-xs w-full" /></th>
-                        <th><input v-model="filters.code_str" placeholder="Structure" class="input input-xs w-full" />
-                        </th>
-                        <th><input v-model="filters.date_affectation" type="date" class="input input-xs w-full" /></th>
-                        <th><input v-model="filters.matricule_utl" placeholder="Utilisateur"
-                                class="input input-xs w-full" /></th>
-                        <th><input v-model="filters.type_affectation" placeholder="Type"
-                                class="input input-xs w-full" /></th>
-                    </tr>
-                    <tr class="font-semibold bg-blue-200">
-                        <th>#</th>
-                        <th>Matricule</th>
-                        <th>Libellé</th>
-                        <th>Structure</th>
-                        <th>Date</th>
-                        <th>Utilisateur</th>
-                        <th>Type</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="(item, index) in paginatedAffectations" :key="index" class="hover:bg-blue-50">
-                        <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
-                        <td>{{ item.code_mat }}</td>
-                        <td>{{ item.libelle }}</td>
-                        <td>{{ item.code_str }}</td>
-                        <td>{{ item.date }}</td>
-                        <td>{{ item.matricule_utl }}</td>
-                        <td>{{ item.type_affectation }}</td>
-                    </tr>
-                    <tr v-if="filteredAffectations.length === 0">
-                        <td colspan="7" class="text-center py-4 text-gray-500 italic">Aucune affectation trouvée.</td>
-                    </tr>
-                </tbody>
-            </table>
+                <!-- Filtres -->
+                <div class="grid grid-cols-2 md:grid-cols-7 gap-2 mb-4">
+                    <input v-model="filters.code_mat" placeholder="Code Mat" class="input input-xs" />
+                    <input v-model="filters.libelle" placeholder="Libellé" class="input input-xs" />
+                    <input v-model="filters.code_str" placeholder="Structure" class="input input-xs" />
+                    <input v-model="filters.date_affectation" type="date" class="input input-xs" />
+                    <input v-model="filters.matricule_utl" placeholder="Utilisateur" class="input input-xs" />
+                    <input v-model="filters.type_affectation" placeholder="Type" class="input input-xs" />
+                    <input v-model="filters.montant" placeholder="Montant / Interval" class="input input-xs" />
+                </div>
 
-            <!-- Pagination -->
-            <div class="flex justify-center items-center space-x-3 p-4">
-                <button class="btn btn-sm" @click="prevPage" :disabled="currentPage === 1">← Précédent</button>
-                <span class="text-gray-700 text-sm">Page {{ currentPage }} / {{ totalPages }}</span>
-                <button class="btn btn-sm" @click="nextPage" :disabled="currentPage === totalPages">Suivant →</button>
+                <!-- Accordéons -->
+                <div v-for="group in groupedAffectations" :key="group.structure"
+                    class="mb-4 border rounded-lg shadow-sm">
+                    <!-- bouton dans le template -->
+                    <button type="button" @click="toggleGroup(group.structure)" class="w-full text-left bg-blue-100 px-4 py-2 font-semibold flex justify-between items-center
+                        rounded-t-lg">
+                        {{ group.structure }} ({{ group.items.length }})
+                        <span>{{ isExpanded(group.structure) ? '▲' : '▼' }}</span>
+                    </button>
+
+
+                    <div v-show="isExpanded(group.structure)" class="bg-white overflow-x-auto">
+                        <table class="table-auto w-full text-sm">
+                            <thead class="bg-blue-50 text-blue-800">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Matricule</th>
+                                    <th>Libellé</th>
+                                    <th>Date</th>
+                                    <th>Utilisateur</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr v-for="(item, index) in group.items" :key="index" class="hover:bg-blue-50">
+                                    <td>{{ index + 1 }}</td>
+                                    <td>{{ item.code_mat }}</td>
+                                    <td>{{ fixEncoding(item.libelle) }}</td>
+                                    <!-- Utiliser date_affectation (cohérent avec le tri) -->
+                                    <td>{{ item.date ? new
+                                        Date(item.date).toLocaleDateString('fr-FR') : '' }}</td>
+                                    <td>{{ item.utilisateur_nom }}</td>
+                                    <td>{{ item.type_affectation }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div v-if="filteredAffectations.length === 0" class="text-center py-4 text-gray-500 italic">
+                    Aucune affectation trouvée.
+                </div>
+
             </div>
         </div>
     </div>
