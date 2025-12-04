@@ -14,16 +14,13 @@ export default {
             currentPage: 1,
             itemsPerPage: 50,
             isLoading: true,
-            selectedMateriels: [], // ✅ Sélection multiple
+            selectedMateriels: [],
+            toastMessage: "",
+            // ✅ Sélection multiple
 
             filters: {
-                code_mat: '',
-                libelle: '',
-                code_str: '',
-                matricule_utl: '',
-                type_affectation: '',
-                date_affectation: '',
-                montant: ''
+                matricule: '',
+
             }
         };
     },
@@ -40,7 +37,7 @@ export default {
         },
 
         fetchMateriels() {
-            axios.get('http://localhost:3000/materiel')
+            axios.get('http://localhost:3000/materiel_reforme')
                 .then(res => (this.materiels = res.data))
                 .catch(err => console.error('Erreur materiels :', err));
         },
@@ -88,13 +85,15 @@ export default {
                 codes: this.selectedMateriels
             })
                 .then(() => {
-                    alert("Les matériels ont été mis en réforme !");
+                    this.showToast("Les matériels ont été mis en réforme !");
+
                     this.selectedMateriels = [];
                     this.fetchAffectations();
                 })
                 .catch(err => {
                     console.error("Erreur réforme :", err);
-                    alert("Erreur lors de la réforme.");
+                    this.showToast("❌ Erreur lors de la réforme.");
+
                 });
         },
         fixEncoding(str) {
@@ -103,32 +102,53 @@ export default {
             } catch {
                 return str;
             }
+        },
+        showToast(msg) {
+            this.toastMessage = msg;
+            setTimeout(() => {
+                this.toastMessage = "";
+            }, 3000); // toast disparaît après 3 secondes
+        },
+        decodeHtml(html) {
+            const txt = document.createElement("textarea");
+            txt.innerHTML = html;
+            return txt.value;
         }
+
+
     },
 
     computed: {
-        filteredAffectations() {
-            const data = this.affectations.filter(item => {
-                const norm = this.normalize;
-
-                const checkField = (field, filterValue) => {
-                    if (!filterValue) return true;
-                    const f = norm(filterValue);
-                    const v = norm(field);
-                    return v === f || v.includes(f);
-                };
-
-                if (!checkField(item.code_mat, this.filters.code_mat)) return false;
-                if (!checkField(item.libelle, this.filters.libelle)) return false;
-                if (!checkField(item.code_str, this.filters.code_str)) return false;
-                if (!checkField(item.matricule_utl, this.filters.matricule_utl)) return false;
-                if (!checkField(item.type_affectation, this.filters.type_affectation)) return false;
-
-                if (this.filters.date_affectation) {
-                    const itemDate = item.date_affectation ? item.date_affectation.toString().slice(0, 10) : '';
-                    if (itemDate !== this.filters.date_affectation) return false;
+        filteredMateriels() {
+            return this.materiels.filter(item => {
+                // Matricule
+                if (this.filters.matricule) {
+                    if (!this.normalize(item.matricule).includes(this.normalize(this.filters.matricule))) return false;
                 }
 
+                // Code famille
+                if (this.filters.code_fam) {
+                    if (!this.normalize(item.code_fam).includes(this.normalize(this.filters.code_fam))) return false;
+                }
+
+                // Libellé
+                if (this.filters.libelle) {
+                    if (!this.normalize(item.libelle).includes(this.normalize(this.filters.libelle))) return false;
+                }
+
+                // Fournisseur
+                if (this.filters.code_frs) {
+                    const val = this.normalize(item.code_frs ?? item.frs ?? item.fournisseur);
+                    if (!val.includes(this.normalize(this.filters.code_frs))) return false;
+                }
+
+                // Date d’acquisition
+                if (this.filters.date_acquisition) {
+                    const itemDate = item.date_acquisition ? item.date_acquisition.toString().slice(0, 10) : '';
+                    if (itemDate !== this.filters.date_acquisition) return false;
+                }
+
+                // Montant
                 if (this.filters.montant) {
                     const f = String(this.filters.montant).trim();
                     if (f.includes('-')) {
@@ -138,27 +158,21 @@ export default {
                         const m = parseFloat(String(item.montant).replace(',', '.')) || 0;
                         if (m < min || m > max) return false;
                     } else {
-                        if (!String(item.montant ?? '').toLowerCase().includes(f.toLowerCase())) return false;
+                        if (!String(item.montant).toLowerCase().includes(f.toLowerCase())) return false;
                     }
                 }
 
                 return true;
             });
-
-            return data.sort((a, b) => {
-                const da = a.date_affectation ? new Date(a.date_affectation) : 0;
-                const db = b.date_affectation ? new Date(b.date_affectation) : 0;
-                return db - da;
-            });
         },
 
-        paginatedAffectations() {
+        paginatedMateriels() {
             const start = (this.currentPage - 1) * this.itemsPerPage;
-            return this.filteredAffectations.slice(start, start + this.itemsPerPage);
+            return this.filteredMateriels.slice(start, start + this.itemsPerPage);
         },
 
         totalPages() {
-            return Math.ceil(this.filteredAffectations.length / this.itemsPerPage) || 1;
+            return Math.ceil(this.paginatedMateriels.length / this.itemsPerPage) || 1;
         }
 
 
@@ -178,6 +192,13 @@ export default {
 </script>
 
 <template>
+    <!-- 🔔 Zone Toast -->
+    <div class="toast toast-top toast-end z-50" v-if="toastMessage">
+        <div class="alert alert-success shadow">
+            <span>{{ toastMessage }}</span>
+        </div>
+    </div>
+
     <div class="min-h-screen bg-gray-50 p-6">
 
         <!-- 🔵 Matériels sélectionnés -->
@@ -201,12 +222,9 @@ export default {
         </div>
 
         <div class="flex flex-col items-center mb-6 space-y-3">
-            <h2 class="text-2xl font-bold text-blue-800 mt-5">🔗 Affectations de Matériels</h2>
+            <h2 class="text-2xl font-bold text-blue-800 mt-5">🔗 Proposé à la réforme</h2>
 
-            <button class="btn bg-blue-600 text-white hover:bg-blue-700 border-none rounded-md shadow-md px-6"
-                onclick="my_modal_4.showModal()">
-                + Nouvelle Affectation
-            </button>
+
         </div>
 
         <AffectationAdd @materiel-ajoute="fetchAffectations" />
@@ -231,7 +249,7 @@ export default {
                 </div>
 
                 <p class="text-sm text-gray-500">
-                    {{ filteredAffectations.length }} résultat(s)
+                    {{ paginatedMateriels.length }} résultat(s)
                 </p>
             </div>
 
@@ -241,54 +259,48 @@ export default {
                         <tr>
                             <th>
                                 <input type="checkbox"
-                                    @change="selectedMateriels = $event.target.checked ? paginatedAffectations.map(i => i.code_mat) : []">
+                                    @change="selectedMateriels = $event.target.checked ? paginatedAffectations.map(i => i.matricule) : []">
                             </th>
 
-                            <th>#</th>
-                            <th><input v-model="filters.code_mat" placeholder="Code Mat"
+
+                            <th><input v-model="filters.matricule" placeholder="Code Mat"
                                     class="input input-xs w-full" /></th>
-                            <th><input v-model="filters.libelle" placeholder="Libellé" class="input input-xs w-full" />
-                            </th>
-                            <th><input v-model="filters.code_str" placeholder="Structure"
-                                    class="input input-xs w-full" /></th>
-                            <th></th>
-                            <th><input v-model="filters.matricule_utl" placeholder="Utilisateur"
-                                    class="input input-xs w-full" /></th>
-                            <th><input v-model="filters.type_affectation" placeholder="Type"
-                                    class="input input-xs w-full" /></th>
+                            <th colspan="6"></th>
+
                         </tr>
 
                         <tr class="font-semibold">
-                            <th></th>
                             <th>#</th>
                             <th>Matricule</th>
-                            <th>Libellé</th>
-                            <th>Structure</th>
-                            <th>Date</th>
-                            <th>Utilisateur</th>
-                            <th>Type</th>
+                            <th>Famille</th>
+                            <th>Désignation</th>
+                            <th>Etat</th>
+                            <th>Fournisseur</th>
+                            <th>Date Acquisition</th>
+                            <th>Montant (DZD)</th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        <tr v-for="(item, index) in paginatedAffectations" :key="item.code_mat"
-                            class="hover:bg-blue-50">
+                        <tr v-for="(item, index) in paginatedMateriels" :key="item.code_mat" class="hover:bg-blue-50">
 
                             <td>
-                                <input type="checkbox" :checked="selectedMateriels.includes(item.code_mat)"
-                                    @change="toggleSelection(item.code_mat)">
+                                <input type="checkbox" :checked="selectedMateriels.includes(item.matricule)"
+                                    @change="toggleSelection(item.matricule)">
                             </td>
 
-                            <td>{{ index + 1 }}</td>
-                            <td>{{ item.code_mat }}</td>
-                            <td>{{ fixEncoding(item.libelle) }}</td>
-                            <td>{{ fixEncoding(item.code_str) }}</td>
-                            <td>{{ new Date(item.date).toLocaleDateString('fr-FR') }}</td>
-                            <td>{{ item.utilisateur_nom }}</td>
-                            <td>{{ item.type_affectation }}</td>
+
+                            <td>{{ item.matricule }}</td>
+                            <td>{{ item.code_fam }}</td>
+
+                            <td>{{ item.libelle }}</td>
+                            <td>{{ decodeHtml(item.etat) }}</td>
+                            <td>{{ item.code_frs }}</td>
+                            <td>{{ item.date_acquisition }}</td>
+                            <td>{{ item.montant }}</td>
                         </tr>
 
-                        <tr v-if="filteredAffectations.length === 0">
+                        <tr v-if="paginatedMateriels.length === 0">
                             <td colspan="8" class="text-center py-4 text-gray-500 italic">
                                 Aucune affectation trouvée.
                             </td>

@@ -61,6 +61,20 @@ app.get("/materiel", verifyToken, (req, res) => {
   });
 });
 
+app.get("/materiel_reforme", verifyToken, (req, res) => {
+  db.query(
+    "SELECT * FROM materiel  where etat <> 'p_reforme' ORDER BY code_fam DESC",
+    (err, results) => {
+      if (err) {
+        console.error("Erreur de requête :", err);
+        res.status(500).json({ error: "Erreur dans la base de données" });
+      } else {
+        res.json(results);
+      }
+    }
+  );
+});
+
 app.get("/familles", verifyToken, (req, res) => {
   db.query("SELECT * FROM famille ORDER BY id DESC", (err, results) => {
     if (err) {
@@ -318,19 +332,28 @@ app.get("/affectations", verifyToken, (req, res) => {
 app.post("/materiel/reforme", (req, res) => {
   const { codes } = req.body;
 
-  if (!codes || !Array.isArray(codes)) {
+  if (!codes || !Array.isArray(codes) || codes.length === 0) {
     return res.status(400).json({ error: "Liste invalide" });
   }
+
+  // Crée les placeholders en fonction du nombre d'éléments
   const placeholders = codes.map(() => "?").join(", ");
+  // Vérifie le nom de la colonne : ici j'utilise `matricule` comme dans ton code.
+  // Si dans ta table la colonne s'appelle `code_mat`, remplace `matricule` par `code_mat`.
   const sql = `
     UPDATE materiel
-    SET etat = 'Réforme'
+    SET etat = 'p_reforme'
     WHERE matricule IN (${placeholders})
-`;
+  `;
 
-  db.query(sql, [codes], (err) => {
-    if (err) return res.status(500).json({ error: "Erreur SQL" });
-    res.json({ success: true });
+  // IMPORTANT : passer `codes` (tableau) et non `[codes]` (tableau imbriqué)
+  db.query(sql, codes, (err, result) => {
+    if (err) {
+      console.error("Erreur SQL (reforme) :", err);
+      return res.status(500).json({ error: "Erreur SQL" });
+    }
+
+    return res.json({ success: true, affectedRows: result.affectedRows });
   });
 });
 
