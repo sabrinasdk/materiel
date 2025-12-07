@@ -26,7 +26,7 @@ function verifyToken(req, res, next) {
 
 app.use(
   cors({
-    origin: "http://localhost:5173", // autorise les requêtes venant de Vite
+    origin: "http://localhost:5174", // autorise les requêtes venant de Vite
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
@@ -324,6 +324,33 @@ app.get("/affectations", verifyToken, (req, res) => {
     if (err) {
       console.error("Erreur de requête :", err);
       return res.status(500).json({ error: "Erreur dans la base de données" });
+    }
+    res.json(results);
+  });
+});
+
+app.get("/affectations_derniere", verifyToken, (req, res) => {
+  const sql = `
+    SELECT 
+      a.*,
+      m.libelle,
+      u.nom AS utilisateur_nom,
+      u.fonction AS utilisateur_fonction
+    FROM affectation a
+    JOIN (
+        SELECT code_mat, MAX(date) AS last_date
+        FROM affectation
+        GROUP BY code_mat
+    ) x ON a.code_mat = x.code_mat AND a.date = x.last_date
+    JOIN materiel m ON a.code_mat = m.matricule
+    LEFT JOIN utilisateur u ON a.matricule_utl = u.matricule_utl
+    ORDER BY a.date DESC
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Erreur SQL :", err);
+      return res.status(500).json({ error: "Erreur SQL" });
     }
     res.json(results);
   });

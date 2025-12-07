@@ -42,7 +42,7 @@ export default {
 
         fetchAffectations() {
             this.isLoading = true;
-            axios.get('http://localhost:3000/affectations')
+            axios.get('http://localhost:3000/affectations_derniere')
                 .then(res => {
                     // Tri décroissant par date_affectation
                     this.affectations = res.data.sort((a, b) => {
