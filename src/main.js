@@ -17,6 +17,7 @@ axios.defaults.baseURL = "http://localhost:3000";
 
 // ✅ Rendre axios disponible dans tous les composants via this.$axios
 app.config.globalProperties.$axios = axios;
+console.log(token);
 
 // ✅ Utilisation du router et montage de l’app
 app.use(router);

@@ -9,24 +9,29 @@ const jwt = require("jsonwebtoken");
 const SECRET_KEY = "votre_secret_super_secure";
 
 function verifyToken(req, res, next) {
-  const token = req.headers["authorization"];
-
-  if (!token) {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader) {
     return res.status(403).json({ message: "Token manquant" });
   }
 
-  jwt.verify(token.split(" ")[1], SECRET_KEY, (err, decoded) => {
+  // Format attendu: "Bearer xxxxx"
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(403).json({ message: "Token invalide" });
+  }
+
+  jwt.verify(token, SECRET_KEY, (err, decoded) => {
     if (err) {
       return res.status(401).json({ message: "Token invalide ou expiré" });
     }
-    req.user = decoded; // tu peux accéder à req.user.id dans tes routes
+    req.user = decoded;
     next();
   });
 }
 
 app.use(
   cors({
-    origin: "http://localhost:5174", // autorise les requêtes venant de Vite
+    origin: "*", // autorise les requêtes venant de Vite
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
@@ -402,11 +407,13 @@ app.post("/login", (req, res) => {
     }
 
     // ✅ Création du token JWT
-    const token = jwt.sign(
+    /*  const token = jwt.sign(
       { id: user.id, nom: user.nom },
       SECRET_KEY,
       { expiresIn: "2h" } // durée de validité du token
-    );
+    );*/
+
+    const token = jwt.sign({ id: user.id, nom: user.nom }, SECRET_KEY);
 
     res.json({
       message: "Connexion réussie",

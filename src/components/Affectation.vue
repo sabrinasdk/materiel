@@ -173,9 +173,22 @@ export default {
         <AffectationAdd @materiel-ajoute="fetchAffectations" />
 
         <!-- Loader -->
-        <div v-if="isLoading" class="flex justify-center items-center min-h-[200px]">
-            <span class="loading loading-spinner text-primary loading-lg"></span>
+
+
+
+        <div v-if="isLoading" class="flex flex-col justify-center items-center min-h-[200px] gap-4">
+            <!-- Loader cercle moderne -->
+            <div class="relative w-10 h-10">
+                <div class="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin">
+                </div>
+            </div>
+
+            <!-- Texte animé -->
+            <div class="text-primary text-lg font-medium flex">
+                Chargement<span class="dots"></span>
+            </div>
         </div>
+
 
         <!-- Accordéons par structure -->
         <div v-else>
@@ -231,6 +244,7 @@ export default {
                                 <tr v-for="(item, index) in group.items" :key="index" class="hover:bg-blue-50">
                                     <td>{{ index + 1 }}</td>
                                     <td>{{ item.code_mat }}</td>
+
                                     <td>{{ fixEncoding(item.libelle) }}</td>
                                     <!-- Utiliser date_affectation (cohérent avec le tri) -->
                                     <td>{{ item.date ? new
@@ -264,5 +278,32 @@ export default {
 .table-auto td {
     padding: 8px 6px;
     text-align: left;
+}
+
+.dots::after {
+    content: '';
+    animation: dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes dots {
+    0% {
+        content: '';
+    }
+
+    25% {
+        content: '.';
+    }
+
+    50% {
+        content: '..';
+    }
+
+    75% {
+        content: '...';
+    }
+
+    100% {
+        content: '';
+    }
 }
 </style>
