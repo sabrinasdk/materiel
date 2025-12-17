@@ -14,6 +14,7 @@ export default {
             currentPage: 1,
             itemsPerPage: 50,
             isLoading: true,
+            selectedType: "batiment",
             // état des filtres
             filters: {
                 code_mat: '',
@@ -175,7 +176,13 @@ export default {
         <!-- Loader -->
 
 
-
+        <label for="typeSelect">Type de structure :</label>
+        <select id="typeSelect" v-model="selectedType" @change="fetchAffectations">
+            <option value="batiment">Bâtiment</option>
+            <option value="genie">Génie civil</option>
+            <option value="unite">Unité</option>
+            <option value="DG">DG</option>
+        </select>
         <div v-if="isLoading" class="flex flex-col justify-center items-center min-h-[200px] gap-4">
             <!-- Loader cercle moderne -->
             <div class="relative w-10 h-10">
@@ -222,7 +229,7 @@ export default {
                     <!-- bouton dans le template -->
                     <button type="button" @click="toggleGroup(group.structure)" class="w-full text-left bg-blue-100 px-4 py-2 font-semibold flex justify-between items-center
                         rounded-t-lg">
-                        {{ group.structure }} ({{ group.items.length }})
+                        {{ fixEncoding(group.structure) }} ({{ group.items.length }})
                         <span>{{ isExpanded(group.structure) ? '▲' : '▼' }}</span>
                     </button>
 

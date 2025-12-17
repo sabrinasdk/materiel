@@ -46,6 +46,14 @@ const db = mysql.createConnection({
   database: "parc_info_dep",
 });
 
+/*
+const db = mysql.createConnection({
+  host: "192.168.5.198",
+  user: "skhazem",
+  password: "l0CF",
+  database: "skhazem_parc_info_dep",
+});*/
+
 db.connect((err) => {
   if (err) {
     console.error("Erreur de connexion à MySQL :", err);
@@ -336,21 +344,26 @@ app.get("/affectations", verifyToken, (req, res) => {
 
 app.get("/affectations_derniere", verifyToken, (req, res) => {
   const sql = `
-    SELECT 
-      a.*,
-      m.libelle,
-      u.nom AS utilisateur_nom,
-      u.fonction AS utilisateur_fonction
-    FROM affectation a
-    JOIN (
-        SELECT code_mat, MAX(date) AS last_date
-        FROM affectation
-        GROUP BY code_mat
-    ) x ON a.code_mat = x.code_mat AND a.date = x.last_date
-    JOIN materiel m ON a.code_mat = m.matricule
-    LEFT JOIN utilisateur u ON a.matricule_utl = u.matricule_utl
-    ORDER BY a.date DESC
-  `;
+  SELECT 
+    a.*,
+    m.libelle,
+    u.nom AS utilisateur_nom,
+    u.fonction AS utilisateur_fonction
+  FROM (
+      -- On sélectionne les dernières affectations par matériel
+      SELECT a.*
+      FROM affectation a
+      JOIN (
+          SELECT code_mat, MAX(date) AS last_date
+          FROM affectation
+          GROUP BY code_mat
+      ) x ON a.code_mat = x.code_mat AND a.date = x.last_date
+      WHERE a.code_str REGEXP '^B[0-9]+'
+  ) a
+  JOIN materiel m ON a.code_mat = m.matricule
+  LEFT JOIN utilisateur u ON a.matricule_utl = u.matricule_utl
+   ORDER BY a.code_str ASC, a.date DESC
+`;
 
   db.query(sql, (err, results) => {
     if (err) {
